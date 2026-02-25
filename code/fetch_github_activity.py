@@ -149,7 +149,7 @@ def fetch_all_activity(
     return summary
 
 
-def main(start_date: str, end_date: str) -> None:
+def main(start_date: str, end_date: str, compress: bool, output_dir: pathlib.Path) -> None:
     """
     Main entry point.
 
@@ -161,13 +161,13 @@ def main(start_date: str, end_date: str) -> None:
     end_date : str
         ISO 8601 format date (YYYY-MM-DD) to filter to.
         Example: "2026-02-01"
+    compress : bool, default: False
+        Whether to gzip compress output files.
+    output_dir : pathlib.Path
+        Directory to save output files.
 
     Configure date ranges and settings by editing the variables below.
     """
-    # Set to False to save uncompressed JSON
-    compress: bool = True
-    # ===================================
-
     # Get GitHub token from environment variable
     token = os.environ.get("GITHUB_TOKEN")
     if not token:
@@ -183,9 +183,6 @@ def main(start_date: str, end_date: str) -> None:
         )
 
     # Set output directory
-    repo_head = pathlib.Path(__file__).parent.parent
-    output_dir = repo_head / "sourcedata" / "github"
-
     print(f"Fetching GitHub activity for user: {username}")
     if start_date or end_date:
         print(f"Date range: {start_date or 'start'} to {end_date or 'now'}")
@@ -208,10 +205,15 @@ def main(start_date: str, end_date: str) -> None:
 
 
 if __name__ == "__main__":
+    repo_head = pathlib.Path(__file__).parent.parent
+
     start_date = "2026-01-01"
-    end_date = "2026-01-02"
+    end_date = "2026-01-04"
+    output_dir = repo_head / "sourcedata" / "2026-01"
 
     main(
         start_date=start_date,
-        end_date=start_date,
+        end_date=end_date,
+        compress=False,
+        output_dir=output_dir,
     )
