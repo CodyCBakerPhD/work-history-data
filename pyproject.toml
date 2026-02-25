@@ -1,3 +1,54 @@
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.targets.wheel]
+packages = ["code/src/my_work_history"]
+
+
+
+[project]
+name = "my-work-history"
+version = "0.0.1"
+authors = [
+  { name="Cody Baker", email="cody.c.baker.phd@gmail.com" },
+]
+description = "A Python package for collecting my GitHub work history data."
+readme = "README.md"
+keywords = [
+    "GitHub",
+    "work history",
+    "data collection",
+    "project management",
+]
+license = {file = "LICENSE.txt"}
+requires-python = ">=3.10"
+dependencies = [
+    "requests",
+    "pytest",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Operating System :: Unix",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "License :: OSI Approved :: MIT License",
+]
+
+
+
 [tool.black]
 line-length = 120
 target-version = ['py312']
