@@ -5,11 +5,14 @@ from datetime import datetime, timedelta
 # --- CONFIGURATION ---
 GITHUB_USERNAME = "codycbakerphd"
 TOKEN = os.getenv("GITHUB_TOKEN")
+if TOKEN is None:
+    raise ValueError("Please set the GITHUB_TOKEN environment variable with a valid GitHub Personal Access Token.")
+
 DATE = "2026-01-01"
 
 # Convert DATE into a 24-hour window
 start = datetime.fromisoformat(DATE)
-end = start + timedelta(days=30)
+end = start + timedelta(days=3)
 
 start_iso = start.isoformat()
 end_iso = end.isoformat()
