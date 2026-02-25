@@ -149,17 +149,21 @@ def fetch_all_activity(
     return summary
 
 
-def main() -> None:
+def main(start_date: str, end_date: str) -> None:
     """
     Main entry point.
 
+    Parameters
+    ----------
+    start_date : str
+        ISO 8601 format date (YYYY-MM-DD) to filter from.
+        Example: "2026-01-01"
+    end_date : str
+        ISO 8601 format date (YYYY-MM-DD) to filter to.
+        Example: "2026-02-01"
+
     Configure date ranges and settings by editing the variables below.
     """
-    # ========== CONFIGURATION ==========
-    # Set date range for filtering (None for all time)
-    start_date: str | None = None  # Example: "2026-01-01"
-    end_date: str | None = None  # Example: "2026-02-01"
-
     # Set to False to save uncompressed JSON
     compress: bool = True
     # ===================================
@@ -168,16 +172,14 @@ def main() -> None:
     token = os.environ.get("GITHUB_TOKEN")
     if not token:
         raise ValueError(
-            "GITHUB_TOKEN environment variable not set. "
-            "Please set it with: export GITHUB_TOKEN=your_token_here"
+            "GITHUB_TOKEN environment variable not set. " "Please set it with: export GITHUB_TOKEN=your_token_here"
         )
 
     # Get username from environment variable
     username = os.environ.get("GITHUB_USERNAME")
     if not username:
         raise ValueError(
-            "GITHUB_USERNAME environment variable not set. "
-            "Please set it with: export GITHUB_USERNAME=your_username"
+            "GITHUB_USERNAME environment variable not set. " "Please set it with: export GITHUB_USERNAME=your_username"
         )
 
     # Set output directory
@@ -206,4 +208,10 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    start_date = "2026-01-01"
+    end_date = "2026-01-02"
+
+    main(
+        start_date=start_date,
+        end_date=start_date,
+    )
