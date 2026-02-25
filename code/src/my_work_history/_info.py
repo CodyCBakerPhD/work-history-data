@@ -1,9 +1,9 @@
+import datetime
 import hashlib
+import os
 
 import requests
-import datetime
-import os
-import hashlib
+
 
 def fetch_info(start_date: str, end_date: str, username: str) -> list[dict]:
     github_token = os.getenv("GITHUB_TOKEN")
@@ -23,15 +23,12 @@ def fetch_info(start_date: str, end_date: str, username: str) -> list[dict]:
     }
     query_hash_to_info = dict()
     for url, query in url_to_query.items():
-        response = requests.get(
-            url,
-            headers={"Bearer": f"token {github_token}"},
-            params={"q": query}
-        )
+        response = requests.get(url, headers={"Bearer": f"token {github_token}"}, params={"q": query})
 
         if response.status_code != 200:
             message = (
-                f"GitHub API query `{query}` to URL `{url}` failed!\nStatus code {response.status_code}: {response.json()}"
+                f"GitHub API query `{query}` to URL `{url}` failed!\n"
+                f"Status code {response.status_code}: {response.json()}"
             )
             raise RuntimeError(message)
 

@@ -1,6 +1,7 @@
-import requests
 import os
 from datetime import datetime, timedelta
+
+import requests
 
 # --- CONFIGURATION ---
 GITHUB_USERNAME = "codycbakerphd"
@@ -23,11 +24,7 @@ url = "https://api.github.com/search/issues"
 # Query: issues authored by you, created within the date window
 query = f"author:{GITHUB_USERNAME} type:issue created:{start_iso}..{end_iso}"
 
-response = requests.get(
-    url,
-    headers={"Bearer": f"token {TOKEN}"},
-    params={"q": query}
-)
+response = requests.get(url, headers={"Bearer": f"token {TOKEN}"}, params={"q": query})
 
 data = response.json()
 
