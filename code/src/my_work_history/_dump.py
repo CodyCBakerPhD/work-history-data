@@ -19,6 +19,8 @@ def dump_specific_info(
 
     filename = f'username-{username}_info-{info_type.replace("_", "+")}_date-{date.replace("-", "+")}.json'
     file_path = subdir / filename
+    if file_path.exists():
+        return
 
     info = fetch_info_for_date(date=date, username=username, info_type=info_type)
 
