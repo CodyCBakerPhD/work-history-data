@@ -30,6 +30,7 @@ dependencies = [
     "requests",
     "pytest",
     "pre-commit",
+    "ipython",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
