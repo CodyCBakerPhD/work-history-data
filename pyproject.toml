@@ -31,6 +31,7 @@ dependencies = [
     "pytest",
     "pre-commit",
     "ipython",
+    "rich-click",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -48,6 +49,9 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Information Analysis",
     "License :: OSI Approved :: MIT License",
 ]
+
+[project.scripts]
+mywork = "my_work_history._cli._main:_mywork_cli"
 
 
 

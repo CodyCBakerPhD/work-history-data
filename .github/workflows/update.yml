@@ -2,7 +2,7 @@ name: Update
 
 on:
   schedule:
-    - cron: "0 4 * * *"
+    - cron: "0 0 * * *"
   workflow_dispatch:
 
 env:
@@ -15,7 +15,7 @@ jobs:
 
     steps:
       - name: Clone
-        run: git clone -b main https://x-access-token:${{ secrets._GITHUB_API_KEY }}@github.com/dandi-cache/$REPO_DIR.git
+        run: git clone -b main https://x-access-token:${{ secrets._GITHUB_API_KEY }}@github.com/codycbakerphd/$REPO_DIR.git
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -27,27 +27,15 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-          pip install PyYaml requests
+          pip install -e .
 
-          python $REPO_DIR/code/update.py
+          mywork update --recency 3
 
-      - name: Upload YAML
+      - name: Upload content
         run: |
           git -C $REPO_DIR add .
           git -C $REPO_DIR commit --message "update" || true  # || true in case of no changes
           git -C $REPO_DIR push
-
-      - name: Run minification
-        run: python $REPO_DIR/code/minify.py
-
-      - name: Upload minification
-        run: |
-          git -C $REPO_DIR push origin --delete min || true  # || true in case branch doesn't exist yet
-
-          git -C $REPO_DIR checkout -b min
-          git -C $REPO_DIR add .
-          git -C $REPO_DIR commit --message "update min" || true  # || true in case of no changes
-          git -C $REPO_DIR push --set-upstream origin min
 
   NotifyOnFailure:
     runs-on: ubuntu-latest
@@ -60,7 +48,7 @@ jobs:
           server_port: 465
           username: ${{ secrets.MAIL_USERNAME }}
           password: ${{ secrets.MAIL_PASSWORD }}
-          subject: "CI Failure: DANDI Cache: Content ID → NWB files"
+          subject: "CI Failure: Work history data"
           to: cody.c.baker.phd@gmail.com  # Add more with comma separation (no spaces)
-          from: dandi-cache
-          body: "Please check the latest run of the BIDS-Dandisets Dashboard update: https://github.com/dandi-cache/content-id-to-nwb-files/actions/workflows/update.yml"
+          from: work-history
+          body: "Please check the latest run of my work history update: https://github.com/codycbakerphd/work-history-data/actions/workflows/update.yml"
