@@ -29,7 +29,7 @@ jobs:
 
           pip install -e .
 
-          mywork update --recency 3
+          mywork update --directory ./derivatives --recency 3
 
       - name: Upload content
         run: |

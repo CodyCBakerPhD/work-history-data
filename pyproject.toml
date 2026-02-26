@@ -51,7 +51,7 @@ classifiers = [
 ]
 
 [project.scripts]
-mywork = "my_work_history._cli._main:_mywork_cli"
+mywork = "my_work_history._cli:_mywork_cli"
 
 
 

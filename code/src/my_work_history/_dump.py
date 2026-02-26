@@ -1,3 +1,4 @@
+import importlib.metadata
 import json
 import pathlib
 import typing
@@ -13,8 +14,17 @@ def dump_specific_info(
     username: str,
 ) -> None:
     year, month, day = date.split("-")
+    version = importlib.metadata.distribution("my_work_history").version
+    major, minor, _ = version.split(".")
 
-    subdir = directory / f"username-{username}" / f"year-{year}" / f"month-{month}" / f"day-{day}"
+    subdir = (
+        directory
+        / f"version-{major}+{minor}"
+        / f"username-{username}"
+        / f"year-{year}"
+        / f"month-{month}"
+        / f"day-{day}"
+    )
     subdir.mkdir(parents=True, exist_ok=True)
 
     filename = f'username-{username}_info-{info_type.replace("_", "+")}_date-{date.replace("-", "+")}.json'

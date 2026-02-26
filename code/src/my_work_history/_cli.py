@@ -14,7 +14,7 @@ def _mywork_cli():
 
 # mywork update
 @_mywork_cli.command(name="update")
-@rich_click.option("--directory", type=str, default=".", help="Directory to save the data to.")
+@rich_click.option("--directory", type=str, required=True, help="Directory to save the data to.")
 @rich_click.option("--username", type=str, help="GitHub username to fetch information about.")
 @rich_click.option(
     "--recency", type=int, default=None, help="Number of most recent days to fetch. Smart updating still applies."
@@ -26,5 +26,5 @@ def _mywork_update_cli(directory: str, username: str, recency: int | None = None
     MAX_RECENCY = 365 * 20
     days_to_fetch = min(recency, MAX_RECENCY) if recency is not None else recency
     for day in range(1, days_to_fetch + 1):
-        date = today - datetime.timedelta(days=day)
+        date = (today - datetime.timedelta(days=day)).strftime("%Y-%m-%d")
         my_work_history.dump_info_for_date(directory=directory, date=date, username="codycbakerphd")
