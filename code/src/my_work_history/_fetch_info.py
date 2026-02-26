@@ -9,7 +9,7 @@ def fetch_info_for_date(
     info_type: typing.Literal["prs_opened", "prs_assigned", "issues_opened", "issues_assigned"],
     date: str,
     username: str,
-) -> list[dict]:
+) -> list[dict[str, typing.Any | list[dict[str, typing.Any]]]]:
     """
     Fetch GitHub info (issues, PRs, etc.) created by a specific user on a specific date.
 

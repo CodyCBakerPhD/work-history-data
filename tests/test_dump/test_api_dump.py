@@ -16,9 +16,9 @@ def test_dump_info_for_date(tmp_path: py.local.path) -> None:
         username="codycbakerphd",
     )
 
-    test_file_paths = set(test_directory.rglob(pattern="*.json"))
+    test_file_paths = sorted(list(test_directory.rglob(pattern="*.json")))
     relative_test_file_paths = {path.relative_to(other=test_directory) for path in test_file_paths}
-    expected_file_paths = set(expected_directory.rglob(pattern="*.json"))
+    expected_file_paths = sorted(list((expected_directory.rglob(pattern="*.json"))))
     relative_expected_file_paths = {path.relative_to(other=expected_directory) for path in expected_file_paths}
     assert relative_test_file_paths == relative_expected_file_paths
 

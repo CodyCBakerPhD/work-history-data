@@ -14,7 +14,7 @@ def dump_specific_info(
 ) -> None:
     year, month, day = date.split("-")
 
-    subdir = directory / username / year / month / day
+    subdir = directory / f"username-{username}" / f"year-{year}" / f"month-{month}" / f"day-{day}"
     subdir.mkdir(parents=True, exist_ok=True)
 
     filename = f'username-{username}_info-{info_type.replace("_", "+")}_date-{date.replace("-", "+")}.json'
