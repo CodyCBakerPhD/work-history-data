@@ -2,7 +2,7 @@ import my_work_history
 
 
 def test_fetch_info() -> None:
-    test_info = my_work_history.fetch_info_for_date(
+    test_info, _ = my_work_history.fetch_info_for_date(
         info_type="issues_opened",
         date="2026-01-05",
         username="codycbakerphd",

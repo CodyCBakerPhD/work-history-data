@@ -1,6 +1,7 @@
 import os
 import re
 import typing
+import warnings
 
 import requests
 
@@ -9,7 +10,7 @@ def fetch_info_for_date(
     info_type: typing.Literal["prs_opened", "prs_assigned", "issues_opened", "issues_assigned"],
     date: str,
     username: str,
-) -> list[dict[str, typing.Any | list[dict[str, typing.Any]]]]:
+) -> tuple[list[dict[str, typing.Any | list[dict[str, typing.Any]]]], bool]:
     """
     Fetch GitHub info (issues, PRs, etc.) created by a specific user on a specific date.
 
@@ -26,6 +27,8 @@ def fetch_info_for_date(
     -------
     list[dict]
         A list of dictionaries containing the GitHub info for the specified date and user.
+    bool
+        Whether or not the GitHub API rate limit was hit during the query.
     """
     github_token = os.getenv("GITHUB_TOKEN").strip('"')
     if github_token is None:
@@ -60,12 +63,15 @@ def fetch_info_for_date(
     url = entities_to_url_and_query_mapping[info_type]["url"]
     query = entities_to_url_and_query_mapping[info_type]["query"]
     response = requests.get(url=url, headers={"Authorization": f"token {github_token}"}, params={"q": query})
-    if response.status_code != 200:
-        message = (
-            f"GitHub API query `{query}` to URL `{url}` failed!\n"
-            f"Status code {response.status_code}: {response.json()}"
-        )
+    status = response.status_code
+    result = response.json()
+
+    message = f"GitHub API query `{query}` to URL `{url}` failed!\n" f"Status code {status}: {result}"
+    hit_rate_limit = False
+    if status != 403:
+        hit_rate_limit = True
+        warnings.warn(message=message, stacklevel=2)
+    if status != 200:
         raise RuntimeError(message)
 
-    result = response.json()
-    return result
+    return result, hit_rate_limit

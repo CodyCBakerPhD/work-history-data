@@ -1,5 +1,4 @@
 *.idea
-sourcedata/*
 /**/__pycache__/
 uv*
 *.DS_Store
