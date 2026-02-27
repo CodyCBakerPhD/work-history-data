@@ -1,0 +1,33 @@
+{
+ "data": {
+  "search": {
+   "edges": [
+    {
+     "node": {
+      "url": "https://github.com/myyoda/principles-paper/issues/80"
+     }
+    },
+    {
+     "node": {
+      "url": "https://github.com/myyoda/principles-paper/issues/78"
+     }
+    },
+    {
+     "node": {
+      "url": "https://github.com/myyoda/principles-paper/issues/77"
+     }
+    },
+    {
+     "node": {
+      "url": "https://github.com/myyoda/principles-examples/issues/8"
+     }
+    },
+    {
+     "node": {
+      "url": "https://github.com/myyoda/principles-paper/issues/67"
+     }
+    }
+   ]
+  }
+ }
+}

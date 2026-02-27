@@ -16,7 +16,7 @@ def _mywork_cli():
 # mywork update
 @_mywork_cli.command(name="update")
 @rich_click.option("--directory", type=str, required=True, help="Directory to save the data to.")
-@rich_click.option("--username", type=str, help="GitHub username to fetch information about.")
+@rich_click.option("--username", type=str, required=True, help="GitHub username to fetch information about.")
 @rich_click.option(
     "--recency",
     "past_number_of_days",

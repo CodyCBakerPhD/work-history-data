@@ -1,0 +1,18 @@
+{
+ "data": {
+  "search": {
+   "edges": [
+    {
+     "node": {
+      "url": "https://github.com/dandi-compute/code/issues/22"
+     }
+    },
+    {
+     "node": {
+      "url": "https://github.com/dandi-compute/code/issues/21"
+     }
+    }
+   ]
+  }
+ }
+}

@@ -1,0 +1,18 @@
+{
+ "data": {
+  "search": {
+   "edges": [
+    {
+     "node": {
+      "url": "https://github.com/catalystneuro/nwb-video-widgets/issues/5"
+     }
+    },
+    {
+     "node": {
+      "url": "https://github.com/catalystneuro/nwb-video-widgets/issues/4"
+     }
+    }
+   ]
+  }
+ }
+}
