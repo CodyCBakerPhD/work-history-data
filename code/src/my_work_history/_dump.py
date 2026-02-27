@@ -47,7 +47,7 @@ def dump_specific_info(
     )
     subdir.mkdir(parents=True, exist_ok=True)
 
-    filename = f'username-{username}_info-{info_type.replace("_", "+")}_date-{date.replace("-", "+")}.json'
+    filename = f'info-{info_type.replace("_", "+")}_date-{date.replace("-", "+")}.json'
     file_path = subdir / filename
     if file_path.exists():
         return False

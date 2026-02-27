@@ -12,12 +12,12 @@ def test_dump_info_for_date_graphql(tmp_path: py.local.path) -> None:
 
     test_directory = pathlib.Path(tmp_path) / "test_dump"
     test_directory.mkdir(exist_ok=True)
-    test_version_directory = test_directory / f"version-{major}+{minor}"
+    test_version_directory = test_directory / f"version-{major}+{minor}_request-graphql"
 
     expected_directory = pathlib.Path(__file__).parent / "expected_graphql_dump"
     expected_version_directory = (
-        expected_directory / "version-0+1_request-rest"
-    )  # Use static version since assertions are relative
+        expected_directory / "version-0+1_request-graphql"  # Use static version since assertions are relative
+    )
 
     my_work_history.dump_info_for_date(
         directory=test_directory,

@@ -16,8 +16,8 @@ def test_dump_info_for_date_rest(tmp_path: py.local.path) -> None:
 
     expected_directory = pathlib.Path(__file__).parent / "expected_rest_dump"
     expected_version_directory = (
-        expected_directory / "version-0+1_request-rest"
-    )  # Use static version since assertions are relative
+        expected_directory / "version-0+1_request-rest"  # Use static version since assertions are relative
+    )
 
     my_work_history.dump_info_for_date(
         directory=test_directory,
