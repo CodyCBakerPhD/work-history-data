@@ -10,6 +10,7 @@ def fetch_info_for_date(
     info_type: typing.Literal["prs_opened", "prs_assigned", "issues_opened", "issues_assigned"],
     date: str,
     username: str,
+    request_type: typing.Literal["rest", "graphql"] = "rest",
 ) -> tuple[list[dict[str, typing.Any | list[dict[str, typing.Any]]]], bool]:
     """
     Fetch GitHub info (issues, PRs, etc.) created by a specific user on a specific date.
@@ -41,7 +42,7 @@ def fetch_info_for_date(
         )
         raise ValueError(message)
 
-    entities_to_url_and_query_mapping = {
+    entities_to_url_and_rest_query_mapping = {
         "prs_opened": {
             "url": "https://api.github.com/search/issues",
             "query": f"author:{username} type:pr created:{date}T00:00:00..{date}T23:59:59",
@@ -59,9 +60,42 @@ def fetch_info_for_date(
             "query": f"assignee:{username} type:issue assigned:{date}T00:00:00..{date}T23:59:59",
         },
     }
+    entities_to_url_and_graphql_query_mapping = {
+        "prs_opened": {
+            "url": "https://api.github.com/search/issues",
+            "query": f"author:{username} type:pr created:{date}T00:00:00..{date}T23:59:59",
+        },
+        "prs_assigned": {
+            "url": "https://api.github.com/search/issues",
+            "query": f"assignee:{username} type:pr assigned:{date}T00:00:00..{date}T23:59:59",
+        },
+        "issues_opened": {
+            "url": "https://api.github.com/search/issues",
+            "query": (
+                """
+query OpenIssues($user: String!, $date: String!, $first: Int!, $after: String) {
+  search(
+    query: "author:$user type:issue created:$date..$date"
+    type: ISSUE
+    first: $first
+    after: $after
+  ) {
+    pageInfo { hasNextPage endCursor }
+    edges { node { ... on Issue { url } } }
+  }
+}
+"""
+            ),
+        },
+        "issues_assigned": {
+            "url": "https://api.github.com/search/issues",
+            "query": f"assignee:{username} type:issue assigned:{date}T00:00:00..{date}T23:59:59",
+        },
+    }
+    entities_to_url_and_graphql_query_mapping
 
-    url = entities_to_url_and_query_mapping[info_type]["url"]
-    query = entities_to_url_and_query_mapping[info_type]["query"]
+    url = entities_to_url_and_rest_query_mapping[info_type]["url"]
+    query = entities_to_url_and_rest_query_mapping[info_type]["query"]
     response = requests.get(url=url, headers={"Authorization": f"token {github_token}"}, params={"q": query})
     status = response.status_code
     result = response.json()

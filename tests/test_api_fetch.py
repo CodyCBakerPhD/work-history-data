@@ -6,6 +6,7 @@ def test_fetch_info() -> None:
         info_type="issues_opened",
         date="2026-01-05",
         username="codycbakerphd",
+        request_type="rest",
     )
     expected_info = {
         "total_count": 1,
