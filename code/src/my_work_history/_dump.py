@@ -12,6 +12,7 @@ def dump_specific_info(
     info_type: typing.Literal["prs_opened", "prs_assigned", "issues_opened", "issues_assigned"],
     date: str,
     username: str,
+    request_type: typing.Literal["rest", "graphql"] = "rest",
 ) -> bool:
     year, month, day = date.split("-")
     version = importlib.metadata.distribution("my_work_history").version
@@ -19,7 +20,7 @@ def dump_specific_info(
 
     subdir = (
         directory
-        / f"version-{major}+{minor}"
+        / f"version-{major}+{minor}_request-{request_type}"
         / f"username-{username}"
         / f"year-{year}"
         / f"month-{month}"
@@ -32,7 +33,9 @@ def dump_specific_info(
     if file_path.exists():
         return False
 
-    info, hit_rate_limit = fetch_info_for_date(date=date, username=username, info_type=info_type)
+    info, hit_rate_limit = fetch_info_for_date(
+        info_type=info_type, date=date, username=username, request_type=request_type
+    )
 
     if hit_rate_limit:
         return hit_rate_limit
@@ -45,8 +48,12 @@ def dump_specific_info(
     return False
 
 
-def dump_info_for_date(directory: pathlib.Path, date: str, username: str):
+def dump_info_for_date(
+    directory: pathlib.Path, date: str, username: str, request_type: typing.Literal["rest", "graphql"] = "rest"
+) -> None:
     for info_type in INFO_TYPES:
-        hit_rate_limit = dump_specific_info(directory=directory, info_type=info_type, date=date, username=username)
+        hit_rate_limit = dump_specific_info(
+            directory=directory, info_type=info_type, date=date, username=username, request_type=request_type
+        )
         if hit_rate_limit:
             break

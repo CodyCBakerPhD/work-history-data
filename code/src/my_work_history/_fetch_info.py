@@ -1,3 +1,4 @@
+import functools
 import os
 import re
 import typing
@@ -42,6 +43,26 @@ def fetch_info_for_date(
         )
         raise ValueError(message)
 
+    if request_type == "rest":
+        result, hit_rate_limit = _fetch_info_for_date_rest(
+            info_type=info_type,
+            date=date,
+            username=username,
+            token=github_token,
+        )
+    else:
+        result, hit_rate_limit = _fetch_info_for_date_graphql(
+            info_type=info_type,
+            date=date,
+            username=username,
+            token=github_token,
+        )
+
+    return result, hit_rate_limit
+
+
+@functools.cache
+def _format_rest_queries(date: str, username: str) -> dict[str, dict[str, str]]:
     entities_to_url_and_rest_query_mapping = {
         "prs_opened": {
             "url": "https://api.github.com/search/issues",
@@ -60,52 +81,146 @@ def fetch_info_for_date(
             "query": f"assignee:{username} type:issue assigned:{date}T00:00:00..{date}T23:59:59",
         },
     }
-    entities_to_url_and_graphql_query_mapping = {
-        "prs_opened": {
-            "url": "https://api.github.com/search/issues",
-            "query": f"author:{username} type:pr created:{date}T00:00:00..{date}T23:59:59",
-        },
-        "prs_assigned": {
-            "url": "https://api.github.com/search/issues",
-            "query": f"assignee:{username} type:pr assigned:{date}T00:00:00..{date}T23:59:59",
-        },
-        "issues_opened": {
-            "url": "https://api.github.com/search/issues",
-            "query": (
-                """
-query OpenIssues($user: String!, $date: String!, $first: Int!, $after: String) {
-  search(
-    query: "author:$user type:issue created:$date..$date"
-    type: ISSUE
-    first: $first
-    after: $after
-  ) {
-    pageInfo { hasNextPage endCursor }
-    edges { node { ... on Issue { url } } }
-  }
-}
-"""
-            ),
-        },
-        "issues_assigned": {
-            "url": "https://api.github.com/search/issues",
-            "query": f"assignee:{username} type:issue assigned:{date}T00:00:00..{date}T23:59:59",
-        },
-    }
-    entities_to_url_and_graphql_query_mapping
+    return entities_to_url_and_rest_query_mapping
+
+
+def _fetch_info_for_date_rest(
+    info_type: typing.Literal["prs_opened", "prs_assigned", "issues_opened", "issues_assigned"],
+    date: str,
+    username: str,
+    token: str,
+) -> tuple[list[dict[str, typing.Any | list[dict[str, typing.Any]]]], bool]:
+    entities_to_url_and_rest_query_mapping = _format_rest_queries(date=date, username=username)
 
     url = entities_to_url_and_rest_query_mapping[info_type]["url"]
     query = entities_to_url_and_rest_query_mapping[info_type]["query"]
-    response = requests.get(url=url, headers={"Authorization": f"token {github_token}"}, params={"q": query})
+    response = requests.get(url=url, headers={"Authorization": f"token {token}"}, params={"q": query})
     status = response.status_code
     result = response.json()
 
-    message = f"GitHub API query `{query}` to URL `{url}` failed!\n" f"Status code {status}: {result}"
+    message = f"GitHub REST API query `{query}` to URL `{url}` failed!\n" f"Status code {status}: {result}"
     hit_rate_limit = False
-    if status != 403:
+    if status == 403:
         hit_rate_limit = True
         warnings.warn(message=message, stacklevel=2)
-    if status != 200:
+    elif status != 200:
+        raise RuntimeError(message)
+
+    return result, hit_rate_limit
+
+
+@functools.cache
+def _format_graphql_queries(date: str, username: str) -> dict[str, dict[str, str]]:
+    entities_to_graphql_query_mapping = {
+        "prs_opened": (
+            """
+query OpenPRs($first: Int!) {
+    search(
+        query: "author:{username} type:pr created:{date}..{date}"
+        type: ISSUE
+        first: $first
+    ) {
+        edges {
+            node {
+                ... on PullRequest {
+                    url
+                }
+            }
+        }
+    }
+}
+""".replace(
+                "{username}", username
+            ).replace(
+                "{date}", date
+            )
+        ),
+        "prs_assigned": (
+            """
+query AssignedPRs($user: String!, $date: String!, $first: Int!) {
+    search(
+        query: "assignee:$user type:pr assigned:$date..$date"
+        type: ISSUE
+        first: $first
+    ) {
+        edges { node { ... on PullRequest { url } } }
+    }
+}
+""".replace(
+                "{username}", username
+            ).replace(
+                "{date}", date
+            )
+        ),
+        "issues_opened": (
+            """
+query OpenIssues($user: String!, $date: String!, $first: Int!) {
+    search(
+        query: "author:$user type:issue created:$date..$date"
+        type: ISSUE
+        first: $first
+    ) {
+        edges { node { ... on Issue { url } } }
+    }
+}
+""".replace(
+                "{username}", username
+            ).replace(
+                "{date}", date
+            )
+        ),
+        "issues_assigned": (
+            """
+query AssignedIssues($user: String!, $date: String!, $first: Int!) {
+    search(
+        query: "assignee:$user type:issue assigned:$date..$date"
+        type: ISSUE
+        first: $first
+    ) {
+        edges { node { ... on Issue { url } } }
+    }
+}
+""".replace(
+                "{username}", username
+            ).replace(
+                "{date}", date
+            )
+        ),
+    }
+
+    return entities_to_graphql_query_mapping
+
+
+def _fetch_info_for_date_graphql(
+    info_type: typing.Literal["prs_opened", "prs_assigned", "issues_opened", "issues_assigned"],
+    date: str,
+    username: str,
+    token: str,
+) -> tuple[list[dict[str, typing.Any | list[dict[str, typing.Any]]]], bool]:
+    entities_to_graphql_query_mapping = _format_graphql_queries(date=date, username=username)
+
+    query = entities_to_graphql_query_mapping[info_type]
+    variables = {
+        "user": username,
+        "date": date,
+        "first": 100,
+    }
+    headers = {"Authorization": f"token {token}"}
+    response = requests.post(
+        url="https://api.github.com/graphql",
+        json={"query": query, "variables": variables},
+        headers=headers,
+    )
+    status = response.status_code
+    result = response.json()
+
+    message = f"GitHub GraphQL API query `{query}` failed!\n" f"Status code {status}: {result}"
+    hit_rate_limit = False
+    if status == 403:
+        hit_rate_limit = True
+        warnings.warn(message=message, stacklevel=2)
+        raise RuntimeError(message)
+    elif "errors" in result or status != 200:
         raise RuntimeError(message)
 
     return result, hit_rate_limit
