@@ -12,7 +12,7 @@ def test_dump_info_for_date_rest(tmp_path: py.local.path) -> None:
 
     test_directory = pathlib.Path(tmp_path) / "test_dump"
     test_directory.mkdir(exist_ok=True)
-    test_version_directory = test_directory / f"version-{major}+{minor}"
+    test_version_directory = test_directory / f"version-{major}+{minor}_request-rest"
 
     expected_directory = pathlib.Path(__file__).parent / "expected_rest_dump"
     expected_version_directory = (

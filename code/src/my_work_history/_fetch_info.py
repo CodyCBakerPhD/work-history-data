@@ -111,9 +111,8 @@ def _fetch_info_for_date_rest(
 
 @functools.cache
 def _format_graphql_queries(date: str, username: str) -> dict[str, dict[str, str]]:
-    entities_to_graphql_query_mapping = {
-        "prs_opened": (
-            """
+    entities_to_graphql_query_template = {
+        "prs_opened": """
 query OpenPRs($first: Int!) {
     search(
         query: "author:{username} type:pr created:{date}..{date}"
@@ -129,64 +128,52 @@ query OpenPRs($first: Int!) {
         }
     }
 }
-""".replace(
-                "{username}", username
-            ).replace(
-                "{date}", date
-            )
-        ),
+""",
         "prs_assigned": (
             """
-query AssignedPRs($user: String!, $date: String!, $first: Int!) {
+query AssignedPRs($first: Int!) {
     search(
-        query: "assignee:$user type:pr assigned:$date..$date"
+        query: "assignee:{username} type:pr assigned:{date}..{date}"
         type: ISSUE
         first: $first
     ) {
         edges { node { ... on PullRequest { url } } }
     }
 }
-""".replace(
-                "{username}", username
-            ).replace(
-                "{date}", date
-            )
+"""
         ),
         "issues_opened": (
             """
-query OpenIssues($user: String!, $date: String!, $first: Int!) {
+query OpenIssues($first: Int!) {
     search(
-        query: "author:$user type:issue created:$date..$date"
+        query: "author:{username} type:issue created:{date}..{date}"
         type: ISSUE
         first: $first
     ) {
         edges { node { ... on Issue { url } } }
     }
 }
-""".replace(
-                "{username}", username
-            ).replace(
-                "{date}", date
-            )
+"""
         ),
         "issues_assigned": (
             """
-query AssignedIssues($user: String!, $date: String!, $first: Int!) {
+query AssignedIssues($first: Int!) {
     search(
-        query: "assignee:$user type:issue assigned:$date..$date"
+        query: "assignee:{username} type:issue assigned:{date}..{date}"
         type: ISSUE
         first: $first
     ) {
         edges { node { ... on Issue { url } } }
     }
 }
-""".replace(
-                "{username}", username
-            ).replace(
-                "{date}", date
-            )
+"""
         ),
     }
+
+    entities_to_graphql_query_mapping = dict()
+    for entity, query_template in entities_to_graphql_query_template.items():
+        query = query_template.replace("{username}", username).replace("{date}", date)
+        entities_to_graphql_query_mapping[entity] = query
 
     return entities_to_graphql_query_mapping
 
@@ -203,7 +190,7 @@ def _fetch_info_for_date_graphql(
     variables = {
         "user": username,
         "date": date,
-        "first": 100,
+        "first": 100,  # Require by query, should be good enough for a single day
     }
     headers = {"Authorization": f"token {token}"}
     response = requests.post(
