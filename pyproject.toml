@@ -12,7 +12,7 @@ packages = ["code/src/my_work_history"]
 
 [project]
 name = "my-work-history"
-version = "0.0.1"
+version = "0.1.0"
 authors = [
   { name="Cody Baker", email="cody.c.baker.phd@gmail.com" },
 ]

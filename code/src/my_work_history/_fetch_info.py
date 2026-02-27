@@ -27,7 +27,7 @@ def fetch_info_for_date(
     list[dict]
         A list of dictionaries containing the GitHub info for the specified date and user.
     """
-    github_token = os.getenv("GITHUB_TOKEN")
+    github_token = os.getenv("GITHUB_TOKEN").strip('"')
     if github_token is None:
         message = "\nPlease set the `GITHUB_TOKEN` environment variable with a valid GitHub Personal Access Token!\n\n"
         raise ValueError(message)
@@ -59,7 +59,7 @@ def fetch_info_for_date(
 
     url = entities_to_url_and_query_mapping[info_type]["url"]
     query = entities_to_url_and_query_mapping[info_type]["query"]
-    response = requests.get(url=url, headers={"Bearer": f"token {github_token}"}, params={"q": query})
+    response = requests.get(url=url, headers={"Authorization": f"token {github_token}"}, params={"q": query})
     if response.status_code != 200:
         message = (
             f"GitHub API query `{query}` to URL `{url}` failed!\n"
