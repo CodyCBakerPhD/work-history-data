@@ -3,6 +3,7 @@ import typing
 
 import rich_click
 
+from ._minify import _minify
 from ._update import update
 
 
@@ -39,3 +40,20 @@ def _mywork_update_cli(
     directory = pathlib.Path(directory)
 
     update(directory=directory, username=username, past_number_of_days=past_number_of_days, request_type=request_type)
+
+
+# mywork minify
+@_mywork_cli.command(name="minify")
+@rich_click.option(
+    "--directory",
+    type=str,
+    required=True,
+    help=(
+        "The specific subdirectory to minify; should be for a specific version, username, and request type. "
+        "E.g., `/path/to/version-0+1/username-codycbakerphd/request-graphql`."
+    ),
+)
+def _mywork_minify_cli(directory: str) -> None:
+    directory = pathlib.Path(directory)
+
+    _minify(directory=directory)
