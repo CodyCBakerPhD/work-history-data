@@ -37,6 +37,18 @@ jobs:
           git -C $REPO_DIR commit --message "update" || true  # || true in case of no changes
           git -C $REPO_DIR push
 
+      - name: Run minification
+        run: mywork minify --directory ./derivatives
+
+      - name: Upload minification
+        run: |
+          git -C $REPO_DIR push origin --delete min || true  # || true in case branch doesn't exist yet
+
+          git -C $REPO_DIR checkout -b min
+          git -C $REPO_DIR add .
+          git -C $REPO_DIR commit --message "update min" || true  # || true in case of no changes
+          git -C $REPO_DIR push --set-upstream origin min
+
   NotifyOnFailure:
     runs-on: ubuntu-latest
     needs: [ Update ]
