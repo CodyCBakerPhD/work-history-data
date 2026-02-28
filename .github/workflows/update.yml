@@ -39,7 +39,9 @@ jobs:
           git -C $REPO_DIR push
 
       - name: Run minification
-        run: mywork minify --directory work-history-data/derivatives/version-0+1/username-codycbakerphd/request-graphql
+        run:
+          cd work-history-data
+          mywork minify --directory ./derivatives/version-0+1/username-codycbakerphd/request-graphql
 
       - name: Upload minification
         run: |
