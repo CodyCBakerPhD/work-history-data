@@ -123,7 +123,7 @@
     "user_view_type": "public",
     "site_admin": false
    },
-   "author_association": "COLLABORATOR",
+   "author_association": "MEMBER",
    "type": null,
    "active_lock_reason": null,
    "draft": false,
@@ -264,7 +264,7 @@
     "user_view_type": "public",
     "site_admin": false
    },
-   "author_association": "COLLABORATOR",
+   "author_association": "MEMBER",
    "type": null,
    "active_lock_reason": null,
    "draft": false,
@@ -396,7 +396,7 @@
     "user_view_type": "public",
     "site_admin": false
    },
-   "author_association": "COLLABORATOR",
+   "author_association": "MEMBER",
    "type": null,
    "active_lock_reason": null,
    "draft": false,

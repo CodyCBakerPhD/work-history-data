@@ -3,16 +3,16 @@
  "incomplete_results": false,
  "items": [
   {
-   "url": "https://api.github.com/repos/dandi/dandi-atlas/issues/1",
-   "repository_url": "https://api.github.com/repos/dandi/dandi-atlas",
-   "labels_url": "https://api.github.com/repos/dandi/dandi-atlas/issues/1/labels{/name}",
-   "comments_url": "https://api.github.com/repos/dandi/dandi-atlas/issues/1/comments",
-   "events_url": "https://api.github.com/repos/dandi/dandi-atlas/issues/1/events",
-   "html_url": "https://github.com/dandi/dandi-atlas/issues/1",
-   "id": 3979776889,
-   "node_id": "I_kwDORWPBp87tNpN5",
-   "number": 1,
-   "title": "Add session selection capability",
+   "url": "https://api.github.com/repos/con/nwb2bids/issues/252",
+   "repository_url": "https://api.github.com/repos/con/nwb2bids",
+   "labels_url": "https://api.github.com/repos/con/nwb2bids/issues/252/labels{/name}",
+   "comments_url": "https://api.github.com/repos/con/nwb2bids/issues/252/comments",
+   "events_url": "https://api.github.com/repos/con/nwb2bids/issues/252/events",
+   "html_url": "https://github.com/con/nwb2bids/issues/252",
+   "id": 3782320956,
+   "node_id": "I_kwDOLaBElc7hcaM8",
+   "number": 252,
+   "title": "Investigate: run time on 000008",
    "user": {
     "login": "CodyCBakerPhD",
     "id": 51133164,
@@ -34,18 +34,37 @@
     "user_view_type": "public",
     "site_admin": false
    },
-   "labels": [],
+   "labels": [
+    {
+     "id": 9462365404,
+     "node_id": "LA_kwDOLaBElc8AAAACNAA83A",
+     "url": "https://api.github.com/repos/con/nwb2bids/labels/performance",
+     "name": "performance",
+     "color": "f4b2d8",
+     "default": false,
+     "description": "Improve performance of an existing feature"
+    }
+   ],
    "state": "open",
    "locked": false,
    "assignees": [],
    "milestone": null,
-   "comments": 2,
-   "created_at": "2026-02-23T19:23:58Z",
-   "updated_at": "2026-02-23T20:36:42Z",
+   "comments": 1,
+   "created_at": "2026-01-05T17:36:59Z",
+   "updated_at": "2026-01-26T15:26:58Z",
    "closed_at": null,
    "assignee": null,
    "author_association": "MEMBER",
-   "type": null,
+   "type": {
+    "id": 1706307,
+    "node_id": "IT_kwDOAMredc4AGglD",
+    "name": "Task",
+    "description": "A specific piece of work",
+    "color": "yellow",
+    "created_at": "2024-01-25T14:25:30Z",
+    "updated_at": "2024-07-26T10:29:52Z",
+    "is_enabled": true
+   },
    "active_lock_reason": null,
    "sub_issues_summary": {
     "total": 0,
@@ -58,9 +77,9 @@
     "blocking": 0,
     "total_blocking": 0
    },
-   "body": "Right now goes by Dandiset+Subject, and while the targeted probe implantation locations are often subject-specific, I recall it is possible for the depth to vary per session for that subject, which can then alter the locations spanned (per channel) per session",
+   "body": "@asmacdo noted that `nwb2bids` takes a long time to run on Dandiset 000008\n\nShould investigate why",
    "reactions": {
-    "url": "https://api.github.com/repos/dandi/dandi-atlas/issues/1/reactions",
+    "url": "https://api.github.com/repos/con/nwb2bids/issues/252/reactions",
     "total_count": 0,
     "+1": 0,
     "-1": 0,
@@ -71,7 +90,7 @@
     "rocket": 0,
     "eyes": 0
    },
-   "timeline_url": "https://api.github.com/repos/dandi/dandi-atlas/issues/1/timeline",
+   "timeline_url": "https://api.github.com/repos/con/nwb2bids/issues/252/timeline",
    "performed_via_github_app": null,
    "state_reason": null,
    "pinned_comment": null,

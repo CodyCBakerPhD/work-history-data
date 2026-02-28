@@ -1,11 +1,12 @@
 import my_work_history
 
 
-def test_fetch_info() -> None:
+def test_fetch_info_rest() -> None:
     test_info, _ = my_work_history.fetch_info_for_date(
         info_type="issues_opened",
         date="2026-01-05",
         username="codycbakerphd",
+        request_type="rest",
     )
     expected_info = {
         "total_count": 1,
@@ -63,7 +64,7 @@ def test_fetch_info() -> None:
                 "updated_at": "2026-01-26T15:26:58Z",
                 "closed_at": None,
                 "assignee": None,
-                "author_association": "COLLABORATOR",
+                "author_association": "MEMBER",
                 "type": {
                     "id": 1706307,
                     "node_id": "IT_kwDOAMredc4AGglD",
@@ -107,3 +108,22 @@ def test_fetch_info() -> None:
         ],
     }
     assert test_info == expected_info
+
+
+def test_fetch_info_graphql() -> None:
+    test_info, _ = my_work_history.fetch_info_for_date(
+        info_type="issues_opened",
+        date="2026-01-05",
+        username="codycbakerphd",
+        request_type="graphql",
+    )
+    expected_info = ["https://github.com/con/nwb2bids/issues/252"]
+    assert test_info == expected_info
+
+
+# TODO: add tests for
+# - ensuring empty day folders are not created
+# - error message for github token
+# - ensure overwrite=True creates new file (when current file is empty or partial or incorrect)
+# - ensure overwrite=False does not overwrite existing file (even if incorrect)
+# - CLI and tests for update API; will require a 'start from date' kwarg to make deterministic

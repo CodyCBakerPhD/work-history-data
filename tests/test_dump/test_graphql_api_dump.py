@@ -6,26 +6,30 @@ import my_work_history
 import py
 
 
-def test_dump_info_for_date(tmp_path: py.local.path) -> None:
+def test_dump_info_for_date_graphql(tmp_path: py.local.path) -> None:
     version = importlib.metadata.distribution("my_work_history").version
     major, minor, _ = version.split(".")
+    username = "codycbakerphd"
 
     test_directory = pathlib.Path(tmp_path) / "test_dump"
     test_directory.mkdir(exist_ok=True)
     test_version_directory = test_directory / f"version-{major}+{minor}"
+    test_request_directory = test_version_directory / f"username-{username}" / "request-graphql"
 
-    expected_directory = pathlib.Path(__file__).parent / "expected_dump"
+    expected_directory = pathlib.Path(__file__).parent / "expected_dumps"
     expected_version_directory = expected_directory / "version-0+1"  # Use static version since assertions are relative
+    expected_request_directory = expected_version_directory / f"username-{username}" / "request-graphql"
 
     my_work_history.dump_info_for_date(
         directory=test_directory,
         date="2026-01-05",
-        username="codycbakerphd",
+        username=username,
+        request_type="graphql",
     )
 
-    test_file_paths = sorted(list(test_directory.rglob(pattern="*.json")))
+    test_file_paths = sorted(list(test_request_directory.rglob(pattern="*.json")))
     relative_test_file_paths = {path.relative_to(other=test_version_directory) for path in test_file_paths}
-    expected_file_paths = sorted(list((expected_directory.rglob(pattern="*.json"))))
+    expected_file_paths = sorted(list((expected_request_directory.rglob(pattern="*.json"))))
     relative_expected_file_paths = {path.relative_to(other=expected_version_directory) for path in expected_file_paths}
     assert relative_test_file_paths == relative_expected_file_paths
 
