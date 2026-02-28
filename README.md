@@ -9,7 +9,7 @@ A raw API dump from GitHub about all my activity. To be used to create a dashboa
 ```text
 pip install -e .
 
-mywork update --directory ./derivatives --recency [number of days]
+mywork update --directory ./derivatives --recency [number of days] --username [GitHub username]
 ```
 
 
