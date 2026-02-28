@@ -9,7 +9,7 @@ def update(
     directory: pathlib.Path,
     username: str,
     past_number_of_days: int,
-    request_type: typing.Literal["rest", "graphql"] = "rest",
+    request_type: typing.Literal["rest", "graphql"] = "graphql",
 ) -> None:
     today = datetime.date.today()
 

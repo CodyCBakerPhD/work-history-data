@@ -35,7 +35,7 @@ def _mywork_update_cli(
     directory: str,
     username: str,
     past_number_of_days: int | None = None,
-    request_type: typing.Literal["rest", "graphql"] = "rest",
+    request_type: typing.Literal["rest", "graphql"] = "graphql",
 ) -> None:
     directory = pathlib.Path(directory)
 

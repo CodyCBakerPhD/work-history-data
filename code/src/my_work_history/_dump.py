@@ -12,7 +12,7 @@ def dump_specific_info(
     info_type: typing.Literal["prs_opened", "prs_assigned", "issues_opened", "issues_assigned"],
     date: str,
     username: str,
-    request_type: typing.Literal["rest", "graphql"] = "rest",
+    request_type: typing.Literal["rest", "graphql"] = "graphql",
     overwrite: bool = False,
 ) -> bool:
     """
@@ -78,7 +78,7 @@ def dump_info_for_date(
     directory: pathlib.Path,
     date: str,
     username: str,
-    request_type: typing.Literal["rest", "graphql"] = "rest",
+    request_type: typing.Literal["rest", "graphql"] = "graphql",
     overwrite: bool = False,
 ) -> None:
     """
