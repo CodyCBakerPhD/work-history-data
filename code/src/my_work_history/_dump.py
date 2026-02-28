@@ -13,25 +13,30 @@ def dump_specific_info(
     date: str,
     username: str,
     request_type: typing.Literal["rest", "graphql"] = "rest",
+    overwrite: bool = False,
 ) -> bool:
     """
     Parameters
     ----------
     directory : pathlib.Path
         The base directory to save the data to.
-    info_type : typing.Literal["prs_opened", "prs_assigned", "issues_opened", "issues_assigned"]
+    info_type : "prs_opened", "prs_assigned", "issues_opened", or "issues_assigned"
         The type of information to fetch and save.
     date : str
         The date to fetch information for, in the format "YYYY-MM-DD".
     username : str
         The GitHub username to fetch information about.
-    request_type : typing.Literal["rest", "graphql"]
+    request_type : "rest" or "graphql"
         The type of API request to use when fetching information (e.g., "rest" or "graphql").
+    overwrite : bool, default=False
+        Whether to overwrite existing files.
+        If False, existing files will be left unchanged.
+        Use of True is recommended for the most recent days (since API fetches may not be 100% accurate).
 
     Returns
     -------
     bool
-        Whether or not the GitHub API rate limit was hit during the query.
+        Whether the GitHub API rate limit was hit during the query.
     """
     year, month, day = date.split("-")
     version = importlib.metadata.distribution("my_work_history").version
@@ -46,11 +51,9 @@ def dump_specific_info(
         / f"month-{month}"
         / f"day-{day}"
     )
-    subdir.mkdir(parents=True, exist_ok=True)
-
     filename = f'info-{info_type.replace("_", "+")}_date-{date.replace("-", "+")}.json'
     file_path = subdir / filename
-    if file_path.exists():
+    if overwrite is False and file_path.exists():
         return False
 
     info, hit_rate_limit = fetch_info_for_date(
@@ -64,6 +67,7 @@ def dump_specific_info(
     if request_type == "graphql" and len(info) == 0:
         return False
 
+    subdir.mkdir(parents=True, exist_ok=True)
     with file_path.open(mode="w") as file_stream:
         json.dump(obj=info, fp=file_stream, indent=1)
 
@@ -71,11 +75,41 @@ def dump_specific_info(
 
 
 def dump_info_for_date(
-    directory: pathlib.Path, date: str, username: str, request_type: typing.Literal["rest", "graphql"] = "rest"
+    directory: pathlib.Path,
+    date: str,
+    username: str,
+    request_type: typing.Literal["rest", "graphql"] = "rest",
+    overwrite: bool = False,
 ) -> None:
+    """
+    Parameters
+    ----------
+    directory : pathlib.Path
+        The base directory to save the data to.
+    date : str
+        The date to fetch information for, in the format "YYYY-MM-DD".
+    username : str
+        The GitHub username to fetch information about.
+    request_type : "rest" or "graphql"
+        The type of API request to use when fetching information (e.g., "rest" or "graphql").
+    overwrite : bool, default=False
+        Whether to overwrite existing files.
+        If False, existing files will be left unchanged.
+        Use of True is recommended for the most recent days (since API fetches may not be 100% accurate).
+
+    Returns
+    -------
+    bool
+        Whether the GitHub API rate limit was hit during the query.
+    """
     for info_type in INFO_TYPES:
         hit_rate_limit = dump_specific_info(
-            directory=directory, info_type=info_type, date=date, username=username, request_type=request_type
+            directory=directory,
+            info_type=info_type,
+            date=date,
+            username=username,
+            request_type=request_type,
+            overwrite=overwrite,
         )
         if hit_rate_limit:
             break

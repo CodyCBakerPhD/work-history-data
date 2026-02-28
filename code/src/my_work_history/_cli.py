@@ -1,10 +1,9 @@
-import datetime
 import pathlib
 import typing
 
 import rich_click
 
-import my_work_history
+from ._update import update
 
 
 # mywork
@@ -38,10 +37,5 @@ def _mywork_update_cli(
     request_type: typing.Literal["rest", "graphql"] = "rest",
 ) -> None:
     directory = pathlib.Path(directory)
-    today = datetime.date.today()
 
-    MAX_RECENCY = 365 * 20
-    days_to_fetch = min(past_number_of_days, MAX_RECENCY) if past_number_of_days is not None else past_number_of_days
-    for day in range(1, days_to_fetch + 1):
-        date = (today - datetime.timedelta(days=day)).strftime("%Y-%m-%d")
-        my_work_history.dump_info_for_date(directory=directory, date=date, username=username, request_type=request_type)
+    update(directory=directory, username=username, past_number_of_days=past_number_of_days, request_type=request_type)

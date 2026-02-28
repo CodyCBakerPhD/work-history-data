@@ -32,7 +32,7 @@ def fetch_info_for_date(
     bool
         Whether or not the GitHub API rate limit was hit during the query.
     """
-    github_token = os.getenv("GITHUB_TOKEN").strip('"')
+    github_token = os.getenv("GITHUB_TOKEN")
     if github_token is None:
         message = "\nPlease set the `GITHUB_TOKEN` environment variable with a valid GitHub Personal Access Token!\n\n"
         raise ValueError(message)
