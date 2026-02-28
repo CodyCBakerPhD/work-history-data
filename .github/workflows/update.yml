@@ -27,9 +27,10 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
+          cd work-history-data
           pip install -e .
 
-          mywork update --directory ./derivatives --recency 3
+          mywork update --directory ./derivatives --recency 3 --username codycbakerphd --request graphql
 
       - name: Upload content
         run: |
@@ -38,7 +39,9 @@ jobs:
           git -C $REPO_DIR push
 
       - name: Run minification
-        run: mywork minify --directory ./derivatives/version-0+1/username-codycbakerphd/request-graphql
+        run: |
+          cd work-history-data
+          mywork minify --directory ./derivatives/version-0+1/username-codycbakerphd/request-graphql
 
       - name: Upload minification
         run: |
