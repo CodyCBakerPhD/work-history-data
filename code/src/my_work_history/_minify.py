@@ -4,7 +4,7 @@ import pathlib
 
 
 def _minify(directory: pathlib.Path) -> None:
-    if directory.name == "request-graphql":
+    if directory.name != "request-graphql":
         message = f"Directory {directory} does not appear to be GraphQL-based! Other types are not yet supported."
         raise NotImplementedError(message)
 
