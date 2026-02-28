@@ -28,7 +28,7 @@ def _mywork_cli():
     "--request",
     "request_type",
     type=rich_click.Choice(["rest", "graphql"], case_sensitive=False),
-    default="rest",
+    default="graphql",
     help="The type of API request to use when fetching information (e.g., 'rest' or 'graphql').",
 )
 def _mywork_update_cli(
