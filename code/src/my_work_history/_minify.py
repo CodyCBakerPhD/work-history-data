@@ -4,8 +4,11 @@ import pathlib
 
 
 def _minify(directory: pathlib.Path) -> None:
-    if directory.name != "request-graphql":
-        message = f"Directory {directory} does not appear to be GraphQL-based! Other types are not yet supported."
+    if directory.parts[-1] != "request-graphql":
+        message = (
+            f"Directory name `{directory.name}` at `{directory}` does not appear to be GraphQL-based! "
+            "Other types are not yet supported."
+        )
         raise NotImplementedError(message)
 
     all_info_file_paths = list(directory.rglob(pattern="*.json"))
