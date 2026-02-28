@@ -1,13 +1,3 @@
-{
- "data": {
-  "search": {
-   "edges": [
-    {
-     "node": {
-      "url": "https://github.com/con/nwb2bids/issues/252"
-     }
-    }
-   ]
-  }
- }
-}
+[
+ "https://github.com/con/nwb2bids/issues/252"
+]

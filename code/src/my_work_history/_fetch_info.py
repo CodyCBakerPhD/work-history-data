@@ -98,6 +98,13 @@ def _fetch_info_for_date_rest(
     status = response.status_code
     result = response.json()
 
+    if result["incomplete_results"] is True:
+        message = (
+            f"GitHub REST API query `{query}` to URL `{url}` returned incomplete results! Please investigate."
+            f"\nStatus code {status}: {result}"
+        )
+        raise RuntimeError(message)
+
     message = f"GitHub REST API query `{query}` to URL `{url}` failed!\n" f"Status code {status}: {result}"
     hit_rate_limit = False
     if status == 403:
@@ -206,8 +213,8 @@ def _fetch_info_for_date_graphql(
     if status == 403:
         hit_rate_limit = True
         warnings.warn(message=message, stacklevel=2)
-        raise RuntimeError(message)
     elif "errors" in result or status != 200:
         raise RuntimeError(message)
 
-    return result, hit_rate_limit
+    unpacked_result = [node["node"]["url"] for node in result["data"]["search"]["edges"]]
+    return unpacked_result, hit_rate_limit

@@ -1,23 +1,5 @@
-{
- "data": {
-  "search": {
-   "edges": [
-    {
-     "node": {
-      "url": "https://github.com/con/nwb2bids/pull/254"
-     }
-    },
-    {
-     "node": {
-      "url": "https://github.com/con/nwb2bids/pull/253"
-     }
-    },
-    {
-     "node": {
-      "url": "https://github.com/con/nwb2bids/pull/251"
-     }
-    }
-   ]
-  }
- }
-}
+[
+ "https://github.com/con/nwb2bids/pull/254",
+ "https://github.com/con/nwb2bids/pull/253",
+ "https://github.com/con/nwb2bids/pull/251"
+]

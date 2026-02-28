@@ -1,7 +1,7 @@
 import my_work_history
 
 
-def test_fetch_info() -> None:
+def test_fetch_info_rest() -> None:
     test_info, _ = my_work_history.fetch_info_for_date(
         info_type="issues_opened",
         date="2026-01-05",
@@ -107,4 +107,15 @@ def test_fetch_info() -> None:
             }
         ],
     }
+    assert test_info == expected_info
+
+
+def test_fetch_info_graphql() -> None:
+    test_info, _ = my_work_history.fetch_info_for_date(
+        info_type="issues_opened",
+        date="2026-01-05",
+        username="codycbakerphd",
+        request_type="graphql",
+    )
+    expected_info = ["https://github.com/con/nwb2bids/issues/252"]
     assert test_info == expected_info

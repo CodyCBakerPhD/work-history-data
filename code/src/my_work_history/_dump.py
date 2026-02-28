@@ -62,8 +62,6 @@ def dump_specific_info(
     if request_type == "rest" and info["total_count"] == 0:
         return False
     if request_type == "graphql" and len(info) == 0:
-        a = 1
-        a
         return False
 
     with file_path.open(mode="w") as file_stream:
