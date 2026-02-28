@@ -64,7 +64,7 @@ def test_fetch_info() -> None:
                 "updated_at": "2026-01-26T15:26:58Z",
                 "closed_at": None,
                 "assignee": None,
-                "author_association": "COLLABORATOR",
+                "author_association": "MEMBER",
                 "type": {
                     "id": 1706307,
                     "node_id": "IT_kwDOAMredc4AGglD",

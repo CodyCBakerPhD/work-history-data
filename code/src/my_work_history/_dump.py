@@ -39,8 +39,9 @@ def dump_specific_info(
 
     subdir = (
         directory
-        / f"version-{major}+{minor}_request-{request_type}"
+        / f"version-{major}+{minor}"
         / f"username-{username}"
+        / f"request-{request_type}"
         / f"year-{year}"
         / f"month-{month}"
         / f"day-{day}"
