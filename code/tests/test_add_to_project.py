@@ -1,7 +1,9 @@
 import json
 import os
 import pathlib
+import time
 import unittest.mock
+import warnings as _warnings_module
 
 import pytest
 import requests
@@ -474,18 +476,34 @@ def test_add_to_project_integration(tmp_path: pathlib.Path) -> None:
             item_id=items_with_urls[_KNOWN_CLOSED_PR_URL],
             headers=headers,
         )
+        time.sleep(1)  # Brief pause to let the delete propagate.
 
     (tmp_path / "urls.json").write_text(json.dumps([_KNOWN_CLOSED_PR_URL]))
 
-    my_work_history.add_to_project(directory=tmp_path, project_url=_TEST_PROJECT_URL)
+    # Capture warnings so they appear in the failure message if the assertion fails.
+    with _warnings_module.catch_warnings(record=True) as caught_warnings:
+        _warnings_module.simplefilter("always")
+        my_work_history.add_to_project(directory=tmp_path, project_url=_TEST_PROJECT_URL)
+    warning_messages = [str(w.message) for w in caught_warnings]
 
-    # Verify the PR URL is now present in the project.
-    items_after = _list_project_items_with_urls(headers=headers)
-    added_item_id = items_after.get(_KNOWN_CLOSED_PR_URL)
+    # Poll for the newly-added item with retries to handle GitHub API replication lag.
+    added_item_id = None
+    items_after: dict[str, str] = {}
+    for attempt in range(6):
+        items_after = _list_project_items_with_urls(headers=headers)
+        added_item_id = items_after.get(_KNOWN_CLOSED_PR_URL)
+        if added_item_id is not None:
+            break
+        time.sleep(2)
+
+    diagnostic = (
+        f"Warnings during add_to_project: {warning_messages}\n"
+        f"URLs in project after (first 10): {list(items_after.keys())[:10]}"
+    )
 
     try:
         assert added_item_id is not None, (
-            f"Expected {_KNOWN_CLOSED_PR_URL!r} to be present in the project after add_to_project"
+            f"Expected {_KNOWN_CLOSED_PR_URL!r} to be present in the project after add_to_project.\n{diagnostic}"
         )
     finally:
         # Always clean up, even if the assertion fails.
