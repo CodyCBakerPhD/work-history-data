@@ -34,44 +34,16 @@ def _make_headers() -> dict[str, str]:
     return {"Authorization": f"token {os.environ['GITHUB_TOKEN']}"}
 
 
-def _list_project_item_ids(headers: dict[str, str]) -> set[str]:
-    """Return the set of item IDs currently in the test project.
+def _list_project_items_with_urls(headers: dict[str, str]) -> dict[str, str]:
+    """Return a mapping of {content_url: item_id} for ALL items in the test project.
 
-    Raises
-    ------
-    PermissionError
-        If the API returns 403 (token lacks project permissions).
+    Uses cursor-based pagination to retrieve items beyond the first page.
     """
     query = """
-query($login: String!, $number: Int!) {
+query($login: String!, $number: Int!, $after: String) {
     user(login: $login) {
         projectV2(number: $number) {
-            items(first: 100) {
-                nodes { id }
-            }
-        }
-    }
-}
-"""
-    response = requests.post(
-        url="https://api.github.com/graphql",
-        json={"query": query, "variables": {"login": "CodyCBakerPhD", "number": 5}},
-        headers=headers,
-    )
-    if response.status_code == 403:
-        raise PermissionError("GitHub token lacks project permissions (403)")
-    result = response.json()
-    nodes = result["data"]["user"]["projectV2"]["items"]["nodes"]
-    return {node["id"] for node in nodes}
-
-
-def _list_project_items_with_urls(headers: dict[str, str]) -> dict[str, str]:
-    """Return a mapping of {content_url: item_id} for items in the test project."""
-    query = """
-query($login: String!, $number: Int!) {
-    user(login: $login) {
-        projectV2(number: $number) {
-            items(first: 100) {
+            items(first: 100, after: $after) {
                 nodes {
                     id
                     content {
@@ -79,25 +51,38 @@ query($login: String!, $number: Int!) {
                         ... on Issue { url }
                     }
                 }
+                pageInfo {
+                    hasNextPage
+                    endCursor
+                }
             }
         }
     }
 }
 """
-    response = requests.post(
-        url="https://api.github.com/graphql",
-        json={"query": query, "variables": {"login": "CodyCBakerPhD", "number": 5}},
-        headers=headers,
-    )
-    if response.status_code == 403:
-        raise PermissionError("GitHub token lacks project permissions (403)")
-    result = response.json()
-    nodes = result["data"]["user"]["projectV2"]["items"]["nodes"]
-    return {
-        node["content"]["url"]: node["id"]
-        for node in nodes
-        if node.get("content") and node["content"].get("url")
-    }
+    all_items: dict[str, str] = {}
+    after_cursor = None
+
+    while True:
+        variables: dict = {"login": "CodyCBakerPhD", "number": 5, "after": after_cursor}
+        response = requests.post(
+            url="https://api.github.com/graphql",
+            json={"query": query, "variables": variables},
+            headers=headers,
+        )
+        if response.status_code == 403:
+            raise PermissionError("GitHub token lacks project permissions (403)")
+        result = response.json()
+        items_data = result["data"]["user"]["projectV2"]["items"]
+        for node in items_data["nodes"]:
+            if node.get("content") and node["content"].get("url"):
+                all_items[node["content"]["url"]] = node["id"]
+        page_info = items_data["pageInfo"]
+        if not page_info["hasNextPage"]:
+            break
+        after_cursor = page_info["endCursor"]
+
+    return all_items
 
 
 def _delete_project_item(project_id: str, item_id: str, headers: dict[str, str]) -> None:
@@ -490,19 +475,19 @@ def test_add_to_project_integration(tmp_path: pathlib.Path) -> None:
             headers=headers,
         )
 
-    # Record which items already exist so we only clean up what we add.
-    items_before = _list_project_item_ids(headers=headers)
-
     (tmp_path / "urls.json").write_text(json.dumps([_KNOWN_CLOSED_PR_URL]))
 
     my_work_history.add_to_project(directory=tmp_path, project_url=_TEST_PROJECT_URL)
 
-    items_after = _list_project_item_ids(headers=headers)
-    new_item_ids = items_after - items_before
+    # Verify the PR URL is now present in the project.
+    items_after = _list_project_items_with_urls(headers=headers)
+    added_item_id = items_after.get(_KNOWN_CLOSED_PR_URL)
 
     try:
-        assert new_item_ids, "Expected at least one item to be added to the project"
+        assert added_item_id is not None, (
+            f"Expected {_KNOWN_CLOSED_PR_URL!r} to be present in the project after add_to_project"
+        )
     finally:
         # Always clean up, even if the assertion fails.
-        for item_id in new_item_ids:
-            _delete_project_item(project_id=project_id, item_id=item_id, headers=headers)
+        if added_item_id is not None:
+            _delete_project_item(project_id=project_id, item_id=added_item_id, headers=headers)
