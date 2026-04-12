@@ -65,6 +65,41 @@ query($login: String!, $number: Int!) {
     return {node["id"] for node in nodes}
 
 
+def _list_project_items_with_urls(headers: dict[str, str]) -> dict[str, str]:
+    """Return a mapping of {content_url: item_id} for items in the test project."""
+    query = """
+query($login: String!, $number: Int!) {
+    user(login: $login) {
+        projectV2(number: $number) {
+            items(first: 100) {
+                nodes {
+                    id
+                    content {
+                        ... on PullRequest { url }
+                        ... on Issue { url }
+                    }
+                }
+            }
+        }
+    }
+}
+"""
+    response = requests.post(
+        url="https://api.github.com/graphql",
+        json={"query": query, "variables": {"login": "CodyCBakerPhD", "number": 5}},
+        headers=headers,
+    )
+    if response.status_code == 403:
+        raise PermissionError("GitHub token lacks project permissions (403)")
+    result = response.json()
+    nodes = result["data"]["user"]["projectV2"]["items"]["nodes"]
+    return {
+        node["content"]["url"]: node["id"]
+        for node in nodes
+        if node.get("content") and node["content"].get("url")
+    }
+
+
 def _delete_project_item(project_id: str, item_id: str, headers: dict[str, str]) -> None:
     """Delete a single item from the test project."""
     mutation = """
@@ -436,11 +471,27 @@ def test_add_to_project_integration(tmp_path: pathlib.Path) -> None:
     """
     headers = _make_headers()
 
-    # Record which items already exist so we only clean up what we add.
+    # Resolve the project node ID (needed for cleanup mutations).
     try:
-        items_before = _list_project_item_ids(headers=headers)
+        project_id, _, _ = _get_project_info(project_url=_TEST_PROJECT_URL, headers=headers)
+    except (PermissionError, RuntimeError) as exc:
+        pytest.skip(str(exc))
+
+    # Pre-clean: remove the test PR from the project if it is already present
+    # (e.g. from a previous run where cleanup was skipped).
+    try:
+        items_with_urls = _list_project_items_with_urls(headers=headers)
     except PermissionError as exc:
         pytest.skip(str(exc))
+    if _KNOWN_CLOSED_PR_URL in items_with_urls:
+        _delete_project_item(
+            project_id=project_id,
+            item_id=items_with_urls[_KNOWN_CLOSED_PR_URL],
+            headers=headers,
+        )
+
+    # Record which items already exist so we only clean up what we add.
+    items_before = _list_project_item_ids(headers=headers)
 
     (tmp_path / "urls.json").write_text(json.dumps([_KNOWN_CLOSED_PR_URL]))
 
@@ -448,9 +499,6 @@ def test_add_to_project_integration(tmp_path: pathlib.Path) -> None:
 
     items_after = _list_project_item_ids(headers=headers)
     new_item_ids = items_after - items_before
-
-    # Fetch the project node ID for the delete mutation.
-    project_id, _, _ = _get_project_info(project_url=_TEST_PROJECT_URL, headers=headers)
 
     try:
         assert new_item_ids, "Expected at least one item to be added to the project"

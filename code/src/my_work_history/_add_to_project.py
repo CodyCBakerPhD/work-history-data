@@ -59,6 +59,7 @@ def add_to_project(directory: pathlib.Path, project_url: str) -> None:
         # Determine the correct status
         status_name = {
             ("PullRequest", "closed"): "Done",
+            ("PullRequest", "merged"): "Done",
             ("Issue", "closed"): "Done",
             ("PullRequest", "open"): "In Progress",
             ("Issue", "open"): "Todo",
