@@ -45,7 +45,11 @@ def add_to_project(directory: pathlib.Path, project_url: str) -> None:
 
     for url in all_urls:
         # Determine the item type and state from the URL
-        item_node_id, item_type, item_state = _get_item_info(url=url, headers=headers)
+        item_info = _get_item_info(url=url, headers=headers)
+        if item_info is None:
+            warnings.warn(message=f"URL `{url}` did not resolve to a PR or Issue; skipping.", stacklevel=2)
+            continue
+        item_node_id, item_type, item_state = item_info
 
         # Add the item to the project
         item_id = _add_item_to_project(project_id=project_id, content_id=item_node_id, headers=headers)
@@ -233,7 +237,7 @@ query GetProject($login: String!, $number: Int!) {
     return project_id, status_field_id, status_options
 
 
-def _get_item_info(url: str, headers: dict[str, str]) -> tuple[str, str, str]:
+def _get_item_info(url: str, headers: dict[str, str]) -> tuple[str, str, str] | None:
     """
     Fetch the node ID, type (PullRequest or Issue), and state (open or closed) for the given URL.
 
@@ -246,9 +250,10 @@ def _get_item_info(url: str, headers: dict[str, str]) -> tuple[str, str, str]:
 
     Returns
     -------
-    tuple[str, str, str]
+    tuple[str, str, str] or None
         A tuple of (node_id, item_type, item_state) where item_type is
         'PullRequest' or 'Issue', and item_state is 'open' or 'closed'.
+        Returns None if the URL does not resolve to a PR or Issue.
     """
     query = """
 query GetItem($url: URI!) {
@@ -273,6 +278,8 @@ query GetItem($url: URI!) {
     result = _check_graphql_response(response=response, context=f"Failed to retrieve item info for URL `{url}`.")
 
     resource = result["data"]["resource"]
+    if resource is None:
+        return None
     node_id = resource["id"]
     item_state = resource["state"].lower()
 
