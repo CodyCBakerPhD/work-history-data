@@ -1,4 +1,5 @@
 *.idea
 /**/__pycache__/
 uv*
+.DS_Store
 *.DS_Store

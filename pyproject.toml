@@ -98,5 +98,8 @@ ignore = [
 ]
 fixable = ["ALL"]
 
+[tool.pytest.ini_options]
+testpaths = ["code/tests"]
+
 [tool.ruff.lint.isort]
 relative-imports-order = "closest-to-furthest"
