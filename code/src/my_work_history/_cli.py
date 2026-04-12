@@ -3,6 +3,7 @@ import typing
 
 import rich_click
 
+from ._add_to_project import add_to_project
 from ._create_project import create_project_page
 from ._minify import _minify
 from ._update import update
@@ -72,3 +73,32 @@ def _mywork_create_project_cli(owner: str, title: str) -> None:
     else:
         message = "Project creation failed due to rate limiting. Please check the warnings above and try again later."
         rich_click.echo(rich_click.style(message, fg="red"))
+
+
+# mywork populate
+@_mywork_cli.command(name="populate")
+@rich_click.option(
+    "--directory",
+    type=str,
+    required=True,
+    help=(
+        "The specific subdirectory containing derivatives JSON files; should be for a specific version, username, "
+        "and request type. E.g., `/path/to/version-0+1/username-codycbakerphd/request-graphql`."
+    ),
+)
+@rich_click.option(
+    "--project-url",
+    type=str,
+    required=True,
+    help=(
+        "The URL of the GitHub Project v2 to populate. "
+        "E.g., `https://github.com/users/username/projects/1` "
+        "or `https://github.com/orgs/orgname/projects/1`."
+    ),
+)
+def _mywork_populate_cli(directory: str, project_url: str) -> None:
+    try:
+        add_to_project(directory=pathlib.Path(directory), project_url=project_url)
+    except (ValueError, RuntimeError) as e:
+        rich_click.echo(rich_click.style(str(e), fg="red"))
+        raise SystemExit(1)
