@@ -9,10 +9,6 @@ _STATUS_DONE = "Done"
 _STATUS_IN_PROGRESS = "In Progress"
 _STATUS_TODO = "Todo"
 
-# Maximum number of project fields to fetch in a single query.
-# GitHub Projects can have at most 50 custom fields per project.
-_MAX_PROJECT_FIELDS = 50
-
 
 def add_to_project(directory: pathlib.Path, project_url: str) -> None:
     """
@@ -162,11 +158,11 @@ def _get_project_info(
 
     if owner_type == "users":
         query = """
-query GetProject($login: String!, $number: Int!, $maxFields: Int!) {
+query GetProject($login: String!, $number: Int!) {
     user(login: $login) {
         projectV2(number: $number) {
             id
-            fields(first: $maxFields) {
+            fields(first: 20) {
                 nodes {
                     ... on ProjectV2SingleSelectField {
                         id
@@ -182,15 +178,15 @@ query GetProject($login: String!, $number: Int!, $maxFields: Int!) {
     }
 }
 """
-        variables = {"login": owner_login, "number": project_number, "maxFields": _MAX_PROJECT_FIELDS}
+        variables = {"login": owner_login, "number": project_number}
         data_path = ["data", "user", "projectV2"]
     else:
         query = """
-query GetProject($login: String!, $number: Int!, $maxFields: Int!) {
+query GetProject($login: String!, $number: Int!) {
     organization(login: $login) {
         projectV2(number: $number) {
             id
-            fields(first: $maxFields) {
+            fields(first: 20) {
                 nodes {
                     ... on ProjectV2SingleSelectField {
                         id
@@ -206,7 +202,7 @@ query GetProject($login: String!, $number: Int!, $maxFields: Int!) {
     }
 }
 """
-        variables = {"login": owner_login, "number": project_number, "maxFields": _MAX_PROJECT_FIELDS}
+        variables = {"login": owner_login, "number": project_number}
         data_path = ["data", "organization", "projectV2"]
 
     response = requests.post(
