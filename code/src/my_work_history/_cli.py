@@ -3,6 +3,7 @@ import typing
 
 import rich_click
 
+from ._create_project import create_project_page
 from ._minify import _minify
 from ._update import update
 
@@ -57,3 +58,13 @@ def _mywork_minify_cli(directory: str) -> None:
     directory = pathlib.Path(directory)
 
     _minify(directory=directory)
+
+
+# mywork create-project
+@_mywork_cli.command(name="create-project")
+@rich_click.option("--owner", type=str, required=True, help="GitHub user or organization login to own the project.")
+@rich_click.option("--title", type=str, required=True, help="Title of the new GitHub Project.")
+def _mywork_create_project_cli(owner: str, title: str) -> None:
+    project = create_project_page(owner=owner, title=title)
+    if project:
+        print(f"Project created successfully!\nID: {project['id']}\nURL: {project['url']}")
