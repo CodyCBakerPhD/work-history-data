@@ -5,10 +5,6 @@ import warnings
 
 import requests
 
-_STATUS_DONE = "Done"
-_STATUS_IN_PROGRESS = "In Progress"
-_STATUS_TODO = "Todo"
-
 
 def add_to_project(directory: pathlib.Path, project_url: str) -> None:
     """
@@ -57,12 +53,12 @@ def add_to_project(directory: pathlib.Path, project_url: str) -> None:
             continue
 
         # Determine the correct status
-        if item_state == "closed":
-            status_name = _STATUS_DONE
-        elif item_type == "PullRequest":
-            status_name = _STATUS_IN_PROGRESS
-        else:
-            status_name = _STATUS_TODO
+        status_name = {
+            ("PullRequest", "closed"): "Done",
+            ("Issue", "closed"): "Done",
+            ("PullRequest", "open"): "In Progress",
+            ("Issue", "open"): "Todo",
+        }.get((item_type, item_state))
 
         # Find the option ID for the desired status
         option_id = status_options.get(status_name)
