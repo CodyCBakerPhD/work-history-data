@@ -68,3 +68,5 @@ def _mywork_create_project_cli(owner: str, title: str) -> None:
     project = create_project_page(owner=owner, title=title)
     if project:
         print(f"Project created successfully!\nID: {project['id']}\nURL: {project['url']}")
+    else:
+        print("Project creation failed due to rate limiting. Please check the warnings above and try again later.")

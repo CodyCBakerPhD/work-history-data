@@ -19,6 +19,8 @@ def create_project_page(owner: str, title: str) -> dict[str, str]:
     -------
     dict[str, str]
         A dictionary containing the ``"id"`` and ``"url"`` of the created project.
+        Returns an empty dictionary if the GitHub API rate limit was hit (HTTP 403);
+        a warning is also issued in that case.
     """
     github_token = os.getenv("GITHUB_TOKEN")
     if github_token is None:
