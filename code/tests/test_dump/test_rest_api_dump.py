@@ -3,15 +3,14 @@ import json
 import pathlib
 
 import my_work_history
-import py
 
 
-def test_dump_info_for_date_rest(tmp_path: py.local.path) -> None:
+def test_dump_info_for_date_rest(tmp_path: pathlib.Path) -> None:
     version = importlib.metadata.distribution("my_work_history").version
     major, minor, _ = version.split(".")
     username = "codycbakerphd"
 
-    test_directory = pathlib.Path(tmp_path) / "test_dump"
+    test_directory = tmp_path / "test_dump"
     test_directory.mkdir(exist_ok=True)
     test_version_directory = test_directory / f"version-{major}+{minor}"
     test_request_directory = test_version_directory / f"username-{username}" / "request-rest"
