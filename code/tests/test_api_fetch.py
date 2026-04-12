@@ -11,6 +11,7 @@ def test_fetch_info_rest() -> None:
     expected_info = {
         "total_count": 1,
         "incomplete_results": False,
+        "search_type": "lexical",
         "items": [
             {
                 "url": "https://api.github.com/repos/con/nwb2bids/issues/252",
@@ -53,7 +54,16 @@ def test_fetch_info_rest() -> None:
                         "color": "f4b2d8",
                         "default": False,
                         "description": "Improve performance of an existing feature",
-                    }
+                    },
+                    {
+                        "id": 10455709338,
+                        "node_id": "LA_kwDOLaBElc8AAAACbzV2mg",
+                        "url": "https://api.github.com/repos/con/nwb2bids/labels/future",
+                        "name": "future",
+                        "color": "eafff2",
+                        "default": False,
+                        "description": "Planned for next round of development.",
+                    },
                 ],
                 "state": "open",
                 "locked": False,
@@ -61,10 +71,10 @@ def test_fetch_info_rest() -> None:
                 "milestone": None,
                 "comments": 1,
                 "created_at": "2026-01-05T17:36:59Z",
-                "updated_at": "2026-01-26T15:26:58Z",
+                "updated_at": "2026-03-18T02:06:59Z",
                 "closed_at": None,
                 "assignee": None,
-                "author_association": "MEMBER",
+                "author_association": "COLLABORATOR",
                 "type": {
                     "id": 1706307,
                     "node_id": "IT_kwDOAMredc4AGglD",

@@ -1,6 +1,7 @@
 {
  "total_count": 3,
  "incomplete_results": false,
+ "search_type": "lexical",
  "items": [
   {
    "url": "https://api.github.com/repos/con/nwb2bids/issues/254",
@@ -123,7 +124,7 @@
     "user_view_type": "public",
     "site_admin": false
    },
-   "author_association": "MEMBER",
+   "author_association": "COLLABORATOR",
    "type": null,
    "active_lock_reason": null,
    "draft": false,
@@ -264,7 +265,7 @@
     "user_view_type": "public",
     "site_admin": false
    },
-   "author_association": "MEMBER",
+   "author_association": "COLLABORATOR",
    "type": null,
    "active_lock_reason": null,
    "draft": false,
@@ -396,7 +397,7 @@
     "user_view_type": "public",
     "site_admin": false
    },
-   "author_association": "MEMBER",
+   "author_association": "COLLABORATOR",
    "type": null,
    "active_lock_reason": null,
    "draft": false,

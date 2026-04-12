@@ -27,9 +27,9 @@ def test_dump_info_for_date_rest(tmp_path: pathlib.Path) -> None:
     )
 
     test_file_paths = sorted(list(test_request_directory.rglob(pattern="*.json")))
-    relative_test_file_paths = {path.relative_to(other=test_version_directory) for path in test_file_paths}
+    relative_test_file_paths = {path.relative_to(test_version_directory) for path in test_file_paths}
     expected_file_paths = sorted(list((expected_request_directory.rglob(pattern="*.json"))))
-    relative_expected_file_paths = {path.relative_to(other=expected_version_directory) for path in expected_file_paths}
+    relative_expected_file_paths = {path.relative_to(expected_version_directory) for path in expected_file_paths}
     assert relative_test_file_paths == relative_expected_file_paths
 
     for test_file_path, expected_file_path in zip(test_file_paths, expected_file_paths):
