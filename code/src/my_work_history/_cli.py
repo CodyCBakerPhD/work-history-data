@@ -3,6 +3,7 @@ import typing
 
 import rich_click
 
+from ._create_project import create_project_page
 from ._minify import _minify
 from ._update import update
 
@@ -57,3 +58,17 @@ def _mywork_minify_cli(directory: str) -> None:
     directory = pathlib.Path(directory)
 
     _minify(directory=directory)
+
+
+# mywork create
+@_mywork_cli.command(name="create")
+@rich_click.option("--owner", type=str, required=True, help="GitHub user or organization login to own the project.")
+@rich_click.option("--title", type=str, required=True, help="Title of the new GitHub Project.")
+def _mywork_create_project_cli(owner: str, title: str) -> None:
+    project = create_project_page(owner=owner, title=title)
+    if project:
+        message = f"Project created successfully!\nID: {project['id']}\nURL: {project['url']}"
+        rich_click.echo(rich_click.style(message, fg="green"))
+    else:
+        message = "Project creation failed due to rate limiting. Please check the warnings above and try again later."
+        rich_click.echo(rich_click.style(message, fg="red"))
