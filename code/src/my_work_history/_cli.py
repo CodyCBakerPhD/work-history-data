@@ -96,9 +96,19 @@ def _mywork_create_project_cli(owner: str, title: str) -> None:
         "or `https://github.com/orgs/orgname/projects/1`."
     ),
 )
-def _mywork_populate_cli(directory: str, project_url: str) -> None:
+@rich_click.option(
+    "--status",
+    type=str,
+    default=None,
+    required=False,
+    help=(
+        "Optional custom status value to apply to all items added to the project. "
+        "When omitted, the status is derived from each item's type and state."
+    ),
+)
+def _mywork_populate_cli(directory: str, project_url: str, status: str | None) -> None:
     try:
-        add_to_project(directory=pathlib.Path(directory), project_url=project_url)
+        add_to_project(directory=pathlib.Path(directory), project_url=project_url, status=status)
     except (ValueError, RuntimeError) as e:
         rich_click.echo(rich_click.style(str(e), fg="red"))
         raise SystemExit(1)

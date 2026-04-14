@@ -440,6 +440,125 @@ def test_add_to_project_skips_url_with_null_resource(
             )
 
 
+def test_add_to_project_status_override(monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path) -> None:
+    """When a custom status is provided, all items receive that status regardless of their type/state."""
+    monkeypatch.setenv("GITHUB_TOKEN", "fake-token")
+
+    # Use an open issue URL – without override it would get 'Todo', with override it should get 'In Progress'.
+    issue_url = "https://github.com/owner/repo/issues/10"
+    (tmp_path / "urls.json").write_text(json.dumps([issue_url]))
+
+    project_info_response = unittest.mock.MagicMock()
+    project_info_response.status_code = 200
+    project_info_response.json.return_value = {
+        "data": {
+            "user": {
+                "projectV2": {
+                    "id": "PVT_project",
+                    "fields": {
+                        "nodes": [
+                            {
+                                "id": "PVTSSF_status",
+                                "name": "Status",
+                                "options": [
+                                    {"id": "opt_done", "name": "Done"},
+                                    {"id": "opt_progress", "name": "In Progress"},
+                                    {"id": "opt_todo", "name": "Todo"},
+                                ],
+                            }
+                        ]
+                    },
+                }
+            }
+        }
+    }
+
+    item_info_response = unittest.mock.MagicMock()
+    item_info_response.status_code = 200
+    item_info_response.json.return_value = {
+        "data": {"resource": {"id": "ISSUE_node_id", "state": "OPEN"}}
+    }
+
+    add_item_response = unittest.mock.MagicMock()
+    add_item_response.status_code = 200
+    add_item_response.json.return_value = {
+        "data": {"addProjectV2ItemById": {"item": {"id": "PVTI_new"}}}
+    }
+
+    set_status_response = unittest.mock.MagicMock()
+    set_status_response.status_code = 200
+    set_status_response.json.return_value = {
+        "data": {"updateProjectV2ItemFieldValue": {"projectV2Item": {"id": "PVTI_new"}}}
+    }
+
+    response_sequence = [project_info_response, item_info_response, add_item_response, set_status_response]
+
+    with unittest.mock.patch("requests.post", side_effect=response_sequence) as mock_post:
+        my_work_history.add_to_project(
+            directory=tmp_path,
+            project_url="https://github.com/users/testuser/projects/1",
+            status="In Progress",
+        )
+
+    # The last call should be the set_status mutation; verify the option ID corresponds to 'In Progress'.
+    set_status_call = mock_post.call_args_list[-1]
+    variables = set_status_call.kwargs["json"]["variables"]
+    assert variables["optionId"] == "opt_progress"
+
+
+def test_add_to_project_status_override_unknown_status_warns(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path
+) -> None:
+    """When the overriding status value is not found in the project, a warning is emitted."""
+    monkeypatch.setenv("GITHUB_TOKEN", "fake-token")
+
+    pr_url = "https://github.com/owner/repo/pull/1"
+    (tmp_path / "urls.json").write_text(json.dumps([pr_url]))
+
+    project_info_response = unittest.mock.MagicMock()
+    project_info_response.status_code = 200
+    project_info_response.json.return_value = {
+        "data": {
+            "user": {
+                "projectV2": {
+                    "id": "PVT_project",
+                    "fields": {
+                        "nodes": [
+                            {
+                                "id": "PVTSSF_status",
+                                "name": "Status",
+                                "options": [{"id": "opt_done", "name": "Done"}],
+                            }
+                        ]
+                    },
+                }
+            }
+        }
+    }
+
+    item_info_response = unittest.mock.MagicMock()
+    item_info_response.status_code = 200
+    item_info_response.json.return_value = {
+        "data": {"resource": {"id": "PR_node_id", "state": "OPEN"}}
+    }
+
+    add_item_response = unittest.mock.MagicMock()
+    add_item_response.status_code = 200
+    add_item_response.json.return_value = {
+        "data": {"addProjectV2ItemById": {"item": {"id": "PVTI_new"}}}
+    }
+
+    response_sequence = [project_info_response, item_info_response, add_item_response]
+
+    with unittest.mock.patch("requests.post", side_effect=response_sequence):
+        with pytest.warns(UserWarning, match="not found in project"):
+            my_work_history.add_to_project(
+                directory=tmp_path,
+                project_url="https://github.com/users/testuser/projects/1",
+                status="NonExistentStatus",
+            )
+
+
 # ---------------------------------------------------------------------------
 # Integration tests – require a real GITHUB_TOKEN
 # ---------------------------------------------------------------------------
