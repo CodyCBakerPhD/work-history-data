@@ -4,6 +4,7 @@ import pathlib
 import warnings
 
 import requests
+import tqdm
 
 
 def add_to_project(directory: pathlib.Path, project_url: str, status: str | None = None) -> None:
@@ -48,7 +49,7 @@ def add_to_project(directory: pathlib.Path, project_url: str, status: str | None
     # Resolve the project node ID and get Status field info
     project_id, status_field_id, status_options = _get_project_info(project_url=project_url, headers=headers)
 
-    for url in all_urls:
+    for url in tqdm.tqdm(iterable=all_urls, desc="Adding items to project", unit="items", dynamic_ncols=True):
         # Determine the item type and state from the URL
         item_info = _get_item_info(url=url, headers=headers)
         if item_info is None:
