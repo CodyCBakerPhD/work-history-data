@@ -52,7 +52,6 @@ def add_to_project(directory: pathlib.Path, project_url: str, status: str | None
         # Determine the item type and state from the URL
         item_info = _get_item_info(url=url, headers=headers)
         if item_info is None:
-            warnings.warn(message=f"URL `{url}` did not resolve to a PR or Issue; skipping.", stacklevel=2)
             continue
         item_node_id, item_type, item_state = item_info
 
@@ -98,9 +97,16 @@ def _collect_unique_urls(directory: pathlib.Path) -> list[str]:
     all_urls: set[str] = set()
     for info_file_path in all_info_file_paths:
         with info_file_path.open(mode="r") as file_stream:
-            info: list = json.load(file_stream)
-        for value in info:
-            all_urls.add(value)
+            info = json.load(file_stream)
+        if isinstance(info, dict):
+            # REST API format: {"total_count": ..., "items": [{"html_url": ...}, ...], ...}
+            for item in info.get("items", []):
+                if isinstance(item, dict) and "html_url" in item:
+                    all_urls.add(item["html_url"])
+        else:
+            # GraphQL format: a list of URL strings
+            for value in info:
+                all_urls.add(value)
     return list(all_urls)
 
 

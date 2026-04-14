@@ -143,6 +143,47 @@ def test_collect_unique_urls_reads_json_files(tmp_path: pathlib.Path) -> None:
     }
 
 
+def test_collect_unique_urls_handles_rest_format(tmp_path: pathlib.Path) -> None:
+    """REST API response dicts should have html_url extracted from items, not dict keys."""
+    rest_response = {
+        "total_count": 2,
+        "incomplete_results": False,
+        "search_type": "lexical",
+        "items": [
+            {"html_url": "https://github.com/owner/repo/pull/10", "other_field": "ignored"},
+            {"html_url": "https://github.com/owner/repo/issues/20", "other_field": "ignored"},
+        ],
+    }
+    (tmp_path / "rest.json").write_text(json.dumps(rest_response))
+
+    result = _collect_unique_urls(directory=tmp_path)
+
+    assert set(result) == {
+        "https://github.com/owner/repo/pull/10",
+        "https://github.com/owner/repo/issues/20",
+    }
+
+
+def test_collect_unique_urls_mixed_formats(tmp_path: pathlib.Path) -> None:
+    """A directory with both REST and GraphQL JSON files should collect all URLs correctly."""
+    graphql_urls = ["https://github.com/owner/repo/pull/1"]
+    rest_response = {
+        "total_count": 1,
+        "incomplete_results": False,
+        "search_type": "lexical",
+        "items": [{"html_url": "https://github.com/owner/repo/issues/2"}],
+    }
+    (tmp_path / "graphql.json").write_text(json.dumps(graphql_urls))
+    (tmp_path / "rest.json").write_text(json.dumps(rest_response))
+
+    result = _collect_unique_urls(directory=tmp_path)
+
+    assert set(result) == {
+        "https://github.com/owner/repo/pull/1",
+        "https://github.com/owner/repo/issues/2",
+    }
+
+
 def test_check_graphql_response_returns_result_on_success() -> None:
     mock_response = unittest.mock.MagicMock()
     mock_response.status_code = 200
@@ -400,7 +441,7 @@ def test_add_to_project_end_to_end(monkeypatch: pytest.MonkeyPatch, tmp_path: pa
 def test_add_to_project_skips_url_with_null_resource(
     monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path
 ) -> None:
-    """Items that return a null resource are skipped with a warning."""
+    """Items that return a null resource are silently skipped."""
     monkeypatch.setenv("GITHUB_TOKEN", "fake-token")
 
     (tmp_path / "urls.json").write_text(json.dumps(["https://github.com/owner/repo/pull/999"]))
@@ -433,7 +474,8 @@ def test_add_to_project_skips_url_with_null_resource(
     with unittest.mock.patch(
         "requests.post", side_effect=[project_info_response, null_resource_response]
     ):
-        with pytest.warns(UserWarning, match="did not resolve"):
+        with _warnings_module.catch_warnings():
+            _warnings_module.simplefilter("error")
             my_work_history.add_to_project(
                 directory=tmp_path,
                 project_url="https://github.com/users/testuser/projects/1",
