@@ -15,7 +15,10 @@ from my_work_history._add_to_project import (
     _collect_unique_urls,
     _get_item_info,
     _get_project_info,
+    _list_project_items_with_dates,
+    _set_item_date,
     _set_item_status,
+    update_project_item_dates,
 )
 
 # ---------------------------------------------------------------------------
@@ -231,6 +234,45 @@ def test_get_project_info_parses_user_url() -> None:
                                     {"id": "opt2", "name": "In Progress"},
                                     {"id": "opt3", "name": "Done"},
                                 ],
+                            },
+                            {"id": "PVTF_start", "name": "Start date", "dataType": "DATE"},
+                            {"id": "PVTF_end", "name": "End date", "dataType": "DATE"},
+                        ]
+                    },
+                }
+            }
+        }
+    }
+
+    headers = {"Authorization": "token fake-token"}
+    with unittest.mock.patch("requests.post", return_value=mock_response):
+        project_id, status_field_id, status_options, start_date_field_id, end_date_field_id = _get_project_info(
+            project_url="https://github.com/users/testuser/projects/1",
+            headers=headers,
+        )
+
+    assert project_id == "PVT_kwDOA"
+    assert status_field_id == "PVTSSF_id"
+    assert status_options == {"Todo": "opt1", "In Progress": "opt2", "Done": "opt3"}
+    assert start_date_field_id == "PVTF_start"
+    assert end_date_field_id == "PVTF_end"
+
+
+def test_get_project_info_returns_none_for_missing_date_fields() -> None:
+    """When the project has no Start date / End date fields, their IDs are None."""
+    mock_response = unittest.mock.MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {
+        "data": {
+            "user": {
+                "projectV2": {
+                    "id": "PVT_kwDOA",
+                    "fields": {
+                        "nodes": [
+                            {
+                                "id": "PVTSSF_id",
+                                "name": "Status",
+                                "options": [{"id": "opt1", "name": "Todo"}],
                             }
                         ]
                     },
@@ -241,14 +283,10 @@ def test_get_project_info_parses_user_url() -> None:
 
     headers = {"Authorization": "token fake-token"}
     with unittest.mock.patch("requests.post", return_value=mock_response):
-        project_id, status_field_id, status_options = _get_project_info(
+        _, _, _, start_date_field_id, end_date_field_id = _get_project_info(
             project_url="https://github.com/users/testuser/projects/1",
             headers=headers,
         )
-
-    assert project_id == "PVT_kwDOA"
-    assert status_field_id == "PVTSSF_id"
-    assert status_options == {"Todo": "opt1", "In Progress": "opt2", "Done": "opt3"}
 
 
 def test_get_project_info_raises_when_no_status_field() -> None:
@@ -290,36 +328,54 @@ def test_get_item_info_classifies_pull_request() -> None:
     mock_response = unittest.mock.MagicMock()
     mock_response.status_code = 200
     mock_response.json.return_value = {
-        "data": {"resource": {"id": "PR_node_id", "state": "CLOSED"}}
+        "data": {
+            "resource": {
+                "id": "PR_node_id",
+                "state": "CLOSED",
+                "createdAt": "2023-01-10T12:00:00Z",
+                "closedAt": "2023-02-01T09:00:00Z",
+            }
+        }
     }
 
     headers = {"Authorization": "token fake-token"}
     with unittest.mock.patch("requests.post", return_value=mock_response):
-        node_id, item_type, item_state = _get_item_info(
+        node_id, item_type, item_state, created_at, closed_at = _get_item_info(
             url="https://github.com/owner/repo/pull/1", headers=headers
         )
 
     assert node_id == "PR_node_id"
     assert item_type == "PullRequest"
     assert item_state == "closed"
+    assert created_at == "2023-01-10T12:00:00Z"
+    assert closed_at == "2023-02-01T09:00:00Z"
 
 
 def test_get_item_info_classifies_issue() -> None:
     mock_response = unittest.mock.MagicMock()
     mock_response.status_code = 200
     mock_response.json.return_value = {
-        "data": {"resource": {"id": "ISSUE_node_id", "state": "OPEN"}}
+        "data": {
+            "resource": {
+                "id": "ISSUE_node_id",
+                "state": "OPEN",
+                "createdAt": "2023-03-05T08:00:00Z",
+                "closedAt": None,
+            }
+        }
     }
 
     headers = {"Authorization": "token fake-token"}
     with unittest.mock.patch("requests.post", return_value=mock_response):
-        node_id, item_type, item_state = _get_item_info(
+        node_id, item_type, item_state, created_at, closed_at = _get_item_info(
             url="https://github.com/owner/repo/issues/5", headers=headers
         )
 
     assert node_id == "ISSUE_node_id"
     assert item_type == "Issue"
     assert item_state == "open"
+    assert created_at == "2023-03-05T08:00:00Z"
+    assert closed_at is None
 
 
 def test_add_item_to_project_returns_item_id() -> None:
@@ -414,7 +470,14 @@ def test_add_to_project_end_to_end(monkeypatch: pytest.MonkeyPatch, tmp_path: pa
     item_info_response = unittest.mock.MagicMock()
     item_info_response.status_code = 200
     item_info_response.json.return_value = {
-        "data": {"resource": {"id": "PR_node_id", "state": "CLOSED"}}
+        "data": {
+            "resource": {
+                "id": "PR_node_id",
+                "state": "CLOSED",
+                "createdAt": "2023-01-10T12:00:00Z",
+                "closedAt": "2023-02-01T09:00:00Z",
+            }
+        }
     }
 
     add_item_response = unittest.mock.MagicMock()
@@ -518,7 +581,14 @@ def test_add_to_project_status_override(monkeypatch: pytest.MonkeyPatch, tmp_pat
     item_info_response = unittest.mock.MagicMock()
     item_info_response.status_code = 200
     item_info_response.json.return_value = {
-        "data": {"resource": {"id": "ISSUE_node_id", "state": "OPEN"}}
+        "data": {
+            "resource": {
+                "id": "ISSUE_node_id",
+                "state": "OPEN",
+                "createdAt": "2023-03-05T08:00:00Z",
+                "closedAt": None,
+            }
+        }
     }
 
     add_item_response = unittest.mock.MagicMock()
@@ -581,7 +651,14 @@ def test_add_to_project_status_override_unknown_status_warns(
     item_info_response = unittest.mock.MagicMock()
     item_info_response.status_code = 200
     item_info_response.json.return_value = {
-        "data": {"resource": {"id": "PR_node_id", "state": "OPEN"}}
+        "data": {
+            "resource": {
+                "id": "PR_node_id",
+                "state": "OPEN",
+                "createdAt": "2023-04-01T10:00:00Z",
+                "closedAt": None,
+            }
+        }
     }
 
     add_item_response = unittest.mock.MagicMock()
@@ -599,6 +676,378 @@ def test_add_to_project_status_override_unknown_status_warns(
                 project_url="https://github.com/users/testuser/projects/1",
                 status="NonExistentStatus",
             )
+
+
+def test_set_item_date_calls_mutation() -> None:
+    mock_response = unittest.mock.MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {
+        "data": {"updateProjectV2ItemFieldValue": {"projectV2Item": {"id": "PVTI_item_id"}}}
+    }
+
+    headers = {"Authorization": "token fake-token"}
+    with unittest.mock.patch("requests.post", return_value=mock_response) as mock_post:
+        _set_item_date(
+            project_id="PVT_kwDOA",
+            item_id="PVTI_item_id",
+            field_id="PVTF_date",
+            date="2023-01-15",
+            headers=headers,
+        )
+
+    mock_post.assert_called_once()
+    call_kwargs = mock_post.call_args.kwargs
+    variables = call_kwargs["json"]["variables"]
+    assert variables["projectId"] == "PVT_kwDOA"
+    assert variables["itemId"] == "PVTI_item_id"
+    assert variables["fieldId"] == "PVTF_date"
+    assert variables["date"] == "2023-01-15"
+
+
+def test_add_to_project_sets_dates_when_fields_present(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path
+) -> None:
+    """When the project has Start date / End date fields, they are set on added items."""
+    monkeypatch.setenv("GITHUB_TOKEN", "fake-token")
+
+    pr_url = "https://github.com/owner/repo/pull/1"
+    (tmp_path / "urls.json").write_text(json.dumps([pr_url]))
+
+    project_info_response = unittest.mock.MagicMock()
+    project_info_response.status_code = 200
+    project_info_response.json.return_value = {
+        "data": {
+            "user": {
+                "projectV2": {
+                    "id": "PVT_project",
+                    "fields": {
+                        "nodes": [
+                            {
+                                "id": "PVTSSF_status",
+                                "name": "Status",
+                                "options": [{"id": "opt_done", "name": "Done"}],
+                            },
+                            {"id": "PVTF_start", "name": "Start date", "dataType": "DATE"},
+                            {"id": "PVTF_end", "name": "End date", "dataType": "DATE"},
+                        ]
+                    },
+                }
+            }
+        }
+    }
+
+    item_info_response = unittest.mock.MagicMock()
+    item_info_response.status_code = 200
+    item_info_response.json.return_value = {
+        "data": {
+            "resource": {
+                "id": "PR_node_id",
+                "state": "CLOSED",
+                "createdAt": "2023-01-10T12:00:00Z",
+                "closedAt": "2023-02-01T09:00:00Z",
+            }
+        }
+    }
+
+    add_item_response = unittest.mock.MagicMock()
+    add_item_response.status_code = 200
+    add_item_response.json.return_value = {
+        "data": {"addProjectV2ItemById": {"item": {"id": "PVTI_new"}}}
+    }
+
+    set_field_response = unittest.mock.MagicMock()
+    set_field_response.status_code = 200
+    set_field_response.json.return_value = {
+        "data": {"updateProjectV2ItemFieldValue": {"projectV2Item": {"id": "PVTI_new"}}}
+    }
+
+    # project_info, item_info, add_item, set_status, set_start_date, set_end_date
+    response_sequence = [
+        project_info_response,
+        item_info_response,
+        add_item_response,
+        set_field_response,  # set_status
+        set_field_response,  # set_start_date
+        set_field_response,  # set_end_date
+    ]
+
+    with unittest.mock.patch("requests.post", side_effect=response_sequence) as mock_post:
+        my_work_history.add_to_project(
+            directory=tmp_path,
+            project_url="https://github.com/users/testuser/projects/1",
+        )
+
+    # 6 calls total: project_info, item_info, add_item, set_status, set_start_date, set_end_date
+    assert mock_post.call_count == 6
+    # Check start date call (5th call, index 4)
+    start_date_call = mock_post.call_args_list[4]
+    start_vars = start_date_call.kwargs["json"]["variables"]
+    assert start_vars["fieldId"] == "PVTF_start"
+    assert start_vars["date"] == "2023-01-10"
+    # Check end date call (6th call, index 5)
+    end_date_call = mock_post.call_args_list[5]
+    end_vars = end_date_call.kwargs["json"]["variables"]
+    assert end_vars["fieldId"] == "PVTF_end"
+    assert end_vars["date"] == "2023-02-01"
+
+
+def test_add_to_project_uses_placeholder_end_date_for_open_item(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path
+) -> None:
+    """For open items, the end date is set to creation date + end_date_placeholder_days."""
+    monkeypatch.setenv("GITHUB_TOKEN", "fake-token")
+
+    issue_url = "https://github.com/owner/repo/issues/5"
+    (tmp_path / "urls.json").write_text(json.dumps([issue_url]))
+
+    project_info_response = unittest.mock.MagicMock()
+    project_info_response.status_code = 200
+    project_info_response.json.return_value = {
+        "data": {
+            "user": {
+                "projectV2": {
+                    "id": "PVT_project",
+                    "fields": {
+                        "nodes": [
+                            {
+                                "id": "PVTSSF_status",
+                                "name": "Status",
+                                "options": [{"id": "opt_todo", "name": "Todo"}],
+                            },
+                            {"id": "PVTF_end", "name": "End date", "dataType": "DATE"},
+                        ]
+                    },
+                }
+            }
+        }
+    }
+
+    item_info_response = unittest.mock.MagicMock()
+    item_info_response.status_code = 200
+    item_info_response.json.return_value = {
+        "data": {
+            "resource": {
+                "id": "ISSUE_node_id",
+                "state": "OPEN",
+                "createdAt": "2023-06-01T00:00:00Z",
+                "closedAt": None,
+            }
+        }
+    }
+
+    add_item_response = unittest.mock.MagicMock()
+    add_item_response.status_code = 200
+    add_item_response.json.return_value = {
+        "data": {"addProjectV2ItemById": {"item": {"id": "PVTI_new"}}}
+    }
+
+    set_field_response = unittest.mock.MagicMock()
+    set_field_response.status_code = 200
+    set_field_response.json.return_value = {
+        "data": {"updateProjectV2ItemFieldValue": {"projectV2Item": {"id": "PVTI_new"}}}
+    }
+
+    response_sequence = [
+        project_info_response,
+        item_info_response,
+        add_item_response,
+        set_field_response,  # set_status
+        set_field_response,  # set_end_date (no start date field in this project)
+    ]
+
+    with unittest.mock.patch("requests.post", side_effect=response_sequence) as mock_post:
+        my_work_history.add_to_project(
+            directory=tmp_path,
+            project_url="https://github.com/users/testuser/projects/1",
+            end_date_placeholder_days=30,
+        )
+
+    # Check end date uses the placeholder (2023-06-01 + 30 days = 2023-07-01)
+    end_date_call = mock_post.call_args_list[-1]
+    end_vars = end_date_call.kwargs["json"]["variables"]
+    assert end_vars["fieldId"] == "PVTF_end"
+    assert end_vars["date"] == "2023-07-01"
+
+
+def test_update_project_item_dates_raises_without_token(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+
+    with pytest.raises(ValueError, match="GITHUB_TOKEN"):
+        update_project_item_dates(project_url="https://github.com/users/testuser/projects/1")
+
+
+def test_update_project_item_dates_warns_when_no_date_fields(monkeypatch: pytest.MonkeyPatch) -> None:
+    """When the project has no Start date / End date fields, a warning is emitted and no updates are made."""
+    monkeypatch.setenv("GITHUB_TOKEN", "fake-token")
+
+    project_info_response = unittest.mock.MagicMock()
+    project_info_response.status_code = 200
+    project_info_response.json.return_value = {
+        "data": {
+            "user": {
+                "projectV2": {
+                    "id": "PVT_project",
+                    "fields": {
+                        "nodes": [
+                            {
+                                "id": "PVTSSF_status",
+                                "name": "Status",
+                                "options": [{"id": "opt_done", "name": "Done"}],
+                            }
+                        ]
+                    },
+                }
+            }
+        }
+    }
+
+    with unittest.mock.patch("requests.post", return_value=project_info_response):
+        with pytest.warns(UserWarning, match="no 'Start date' or 'End date' fields"):
+            update_project_item_dates(project_url="https://github.com/users/testuser/projects/1")
+
+
+def test_update_project_item_dates_updates_items(monkeypatch: pytest.MonkeyPatch) -> None:
+    """update_project_item_dates sets dates on all items already in the project."""
+    monkeypatch.setenv("GITHUB_TOKEN", "fake-token")
+
+    project_info_response = unittest.mock.MagicMock()
+    project_info_response.status_code = 200
+    project_info_response.json.return_value = {
+        "data": {
+            "user": {
+                "projectV2": {
+                    "id": "PVT_project",
+                    "fields": {
+                        "nodes": [
+                            {
+                                "id": "PVTSSF_status",
+                                "name": "Status",
+                                "options": [{"id": "opt_done", "name": "Done"}],
+                            },
+                            {"id": "PVTF_start", "name": "Start date", "dataType": "DATE"},
+                            {"id": "PVTF_end", "name": "End date", "dataType": "DATE"},
+                        ]
+                    },
+                }
+            }
+        }
+    }
+
+    list_items_response = unittest.mock.MagicMock()
+    list_items_response.status_code = 200
+    list_items_response.json.return_value = {
+        "data": {
+            "user": {
+                "projectV2": {
+                    "items": {
+                        "nodes": [
+                            {
+                                "id": "PVTI_closed",
+                                "content": {
+                                    "createdAt": "2023-01-10T12:00:00Z",
+                                    "closedAt": "2023-02-01T09:00:00Z",
+                                },
+                            },
+                            {
+                                "id": "PVTI_open",
+                                "content": {
+                                    "createdAt": "2023-03-05T08:00:00Z",
+                                    "closedAt": None,
+                                },
+                            },
+                        ],
+                        "pageInfo": {"hasNextPage": False, "endCursor": None},
+                    }
+                }
+            }
+        }
+    }
+
+    set_field_response = unittest.mock.MagicMock()
+    set_field_response.status_code = 200
+    set_field_response.json.return_value = {
+        "data": {"updateProjectV2ItemFieldValue": {"projectV2Item": {"id": "PVTI_closed"}}}
+    }
+
+    # project_info, list_items, then 4 date sets (2 items × 2 fields each)
+    response_sequence = [
+        project_info_response,
+        list_items_response,
+        set_field_response,  # item1 start date
+        set_field_response,  # item1 end date
+        set_field_response,  # item2 start date
+        set_field_response,  # item2 end date
+    ]
+
+    with unittest.mock.patch("requests.post", side_effect=response_sequence) as mock_post:
+        update_project_item_dates(
+            project_url="https://github.com/users/testuser/projects/1",
+            end_date_placeholder_days=30,
+        )
+
+    # 6 total calls
+    assert mock_post.call_count == 6
+
+    # Verify item1 (closed) dates
+    item1_start = mock_post.call_args_list[2].kwargs["json"]["variables"]
+    assert item1_start["itemId"] == "PVTI_closed"
+    assert item1_start["fieldId"] == "PVTF_start"
+    assert item1_start["date"] == "2023-01-10"
+
+    item1_end = mock_post.call_args_list[3].kwargs["json"]["variables"]
+    assert item1_end["itemId"] == "PVTI_closed"
+    assert item1_end["fieldId"] == "PVTF_end"
+    assert item1_end["date"] == "2023-02-01"
+
+    # Verify item2 (open) uses placeholder end date (2023-03-05 + 30 = 2023-04-04)
+    item2_start = mock_post.call_args_list[4].kwargs["json"]["variables"]
+    assert item2_start["itemId"] == "PVTI_open"
+    assert item2_start["fieldId"] == "PVTF_start"
+    assert item2_start["date"] == "2023-03-05"
+
+    item2_end = mock_post.call_args_list[5].kwargs["json"]["variables"]
+    assert item2_end["itemId"] == "PVTI_open"
+    assert item2_end["fieldId"] == "PVTF_end"
+    assert item2_end["date"] == "2023-04-04"
+
+
+def test_list_project_items_with_dates_returns_items() -> None:
+    mock_response = unittest.mock.MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {
+        "data": {
+            "user": {
+                "projectV2": {
+                    "items": {
+                        "nodes": [
+                            {
+                                "id": "PVTI_1",
+                                "content": {
+                                    "createdAt": "2023-01-01T00:00:00Z",
+                                    "closedAt": "2023-06-01T00:00:00Z",
+                                },
+                            },
+                            {"id": "PVTI_no_content", "content": None},
+                        ],
+                        "pageInfo": {"hasNextPage": False, "endCursor": None},
+                    }
+                }
+            }
+        }
+    }
+
+    with unittest.mock.patch("requests.post", return_value=mock_response):
+        items = _list_project_items_with_dates(
+            owner_type="users",
+            owner_login="testuser",
+            project_number=1,
+            headers={"Authorization": "token fake-token"},
+        )
+
+    assert len(items) == 1
+    assert items[0]["id"] == "PVTI_1"
+    assert items[0]["createdAt"] == "2023-01-01T00:00:00Z"
+    assert items[0]["closedAt"] == "2023-06-01T00:00:00Z"
 
 
 # ---------------------------------------------------------------------------
@@ -621,7 +1070,7 @@ def test_add_to_project_integration(tmp_path: pathlib.Path) -> None:
 
     # Resolve the project node ID (needed for cleanup mutations).
     try:
-        project_id, _, _ = _get_project_info(project_url=_TEST_PROJECT_URL, headers=headers)
+        project_id, _, _, _, _ = _get_project_info(project_url=_TEST_PROJECT_URL, headers=headers)
     except (PermissionError, RuntimeError) as exc:
         pytest.skip(str(exc))
 

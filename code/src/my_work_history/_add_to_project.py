@@ -1,3 +1,4 @@
+import datetime
 import json
 import os
 import pathlib
@@ -7,7 +8,12 @@ import requests
 import tqdm
 
 
-def add_to_project(directory: pathlib.Path, project_url: str, status: str | None = None) -> None:
+def add_to_project(
+    directory: pathlib.Path,
+    project_url: str,
+    status: str | None = None,
+    end_date_placeholder_days: int = 180,
+) -> None:
     """
     Add all unique URLs from the derivatives directory to a GitHub Project (v2).
 
@@ -17,6 +23,9 @@ def add_to_project(directory: pathlib.Path, project_url: str, status: str | None
       - If the Issue or PR is closed, it is given the 'Done' status.
       - If the item is an open PR, it is given the 'In Progress' status.
       - If the item is an open Issue, it is given the 'Todo' status.
+    - The start date is set to the item's creation date.
+    - The end date is set to the item's closed date (if closed), or to
+      ``end_date_placeholder_days`` days after the creation date otherwise.
 
     Parameters
     ----------
@@ -31,6 +40,9 @@ def add_to_project(directory: pathlib.Path, project_url: str, status: str | None
     status : str or None, optional
         A custom status value to apply uniformly to all items added to the project.
         If ``None`` (the default), the status is derived from each item's type and state.
+    end_date_placeholder_days : int, optional
+        Number of days after the item's creation date to use as the placeholder end date
+        when the item has not yet been closed. Default is 180 (approximately 6 months).
     """
     github_token = os.getenv("GITHUB_TOKEN")
     if github_token is None:
@@ -46,15 +58,17 @@ def add_to_project(directory: pathlib.Path, project_url: str, status: str | None
         warnings.warn(message=f"No URLs found in directory `{directory}`.", stacklevel=2)
         return
 
-    # Resolve the project node ID and get Status field info
-    project_id, status_field_id, status_options = _get_project_info(project_url=project_url, headers=headers)
+    # Resolve the project node ID and get Status / date field info
+    project_id, status_field_id, status_options, start_date_field_id, end_date_field_id = _get_project_info(
+        project_url=project_url, headers=headers
+    )
 
     for url in tqdm.tqdm(iterable=all_urls, desc="Adding items to project", unit="items", dynamic_ncols=True):
-        # Determine the item type and state from the URL
+        # Determine the item type, state, and dates from the URL
         item_info = _get_item_info(url=url, headers=headers)
         if item_info is None:
             continue
-        item_node_id, item_type, item_state = item_info
+        item_node_id, item_type, item_state, created_at, closed_at = item_info
 
         # Add the item to the project
         item_id = _add_item_to_project(project_id=project_id, content_id=item_node_id, headers=headers)
@@ -90,6 +104,32 @@ def add_to_project(directory: pathlib.Path, project_url: str, status: str | None
             option_id=option_id,
             headers=headers,
         )
+
+        # Set start date (item creation date)
+        if start_date_field_id is not None:
+            start_date = created_at[:10]  # Extract YYYY-MM-DD from ISO datetime
+            _set_item_date(
+                project_id=project_id,
+                item_id=item_id,
+                field_id=start_date_field_id,
+                date=start_date,
+                headers=headers,
+            )
+
+        # Set end date (closed date, or placeholder)
+        if end_date_field_id is not None:
+            if closed_at is not None:
+                end_date = closed_at[:10]
+            else:
+                creation_date = datetime.date.fromisoformat(created_at[:10])
+                end_date = (creation_date + datetime.timedelta(days=end_date_placeholder_days)).isoformat()
+            _set_item_date(
+                project_id=project_id,
+                item_id=item_id,
+                field_id=end_date_field_id,
+                date=end_date,
+                headers=headers,
+            )
 
 
 def _collect_unique_urls(directory: pathlib.Path) -> list[str]:
@@ -145,9 +185,10 @@ def _check_graphql_response(response: requests.Response, context: str) -> dict:
 
 def _get_project_info(
     project_url: str, headers: dict[str, str]
-) -> tuple[str, str, dict[str, str]]:
+) -> tuple[str, str, dict[str, str], str | None, str | None]:
     """
-    Retrieve the project node ID, the Status field ID, and available Status option names/IDs.
+    Retrieve the project node ID, the Status field ID, available Status option names/IDs,
+    and the IDs of the "Start date" and "End date" date fields (if present).
 
     Parameters
     ----------
@@ -158,9 +199,11 @@ def _get_project_info(
 
     Returns
     -------
-    tuple[str, str, dict[str, str]]
-        A tuple of (project_id, status_field_id, status_options) where
-        status_options maps option name → option ID.
+    tuple[str, str, dict[str, str], str | None, str | None]
+        A tuple of (project_id, status_field_id, status_options, start_date_field_id,
+        end_date_field_id) where status_options maps option name → option ID, and
+        start_date_field_id / end_date_field_id are the IDs of the project's "Start date"
+        and "End date" date fields respectively (or None if not present).
     """
     # Parse owner type, owner login, and project number from URL
     # Expected formats:
@@ -188,6 +231,11 @@ query GetProject($login: String!, $number: Int!) {
                             name
                         }
                     }
+                    ... on ProjectV2Field {
+                        id
+                        name
+                        dataType
+                    }
                 }
             }
         }
@@ -212,6 +260,11 @@ query GetProject($login: String!, $number: Int!) {
                             name
                         }
                     }
+                    ... on ProjectV2Field {
+                        id
+                        name
+                        dataType
+                    }
                 }
             }
         }
@@ -234,28 +287,35 @@ query GetProject($login: String!, $number: Int!) {
 
     project_id = project_data["id"]
 
-    # Find the Status field
+    # Find the Status, Start date, and End date fields
     status_field_id = None
     status_options: dict[str, str] = {}
+    start_date_field_id = None
+    end_date_field_id = None
+
     for field in project_data["fields"]["nodes"]:
         if not field:
             continue
-        if field.get("name") == "Status":
+        field_name = field.get("name", "")
+        if field_name == "Status":
             status_field_id = field["id"]
             for option in field.get("options", []):
                 status_options[option["name"]] = option["id"]
-            break
+        elif field.get("dataType") == "DATE" and field_name.lower() == "start date":
+            start_date_field_id = field["id"]
+        elif field.get("dataType") == "DATE" and field_name.lower() == "end date":
+            end_date_field_id = field["id"]
 
     if status_field_id is None:
         message = f"No 'Status' field found in project `{project_url}`."
         raise ValueError(message)
 
-    return project_id, status_field_id, status_options
+    return project_id, status_field_id, status_options, start_date_field_id, end_date_field_id
 
 
-def _get_item_info(url: str, headers: dict[str, str]) -> tuple[str, str, str] | None:
+def _get_item_info(url: str, headers: dict[str, str]) -> tuple[str, str, str, str, str | None] | None:
     """
-    Fetch the node ID, type (PullRequest or Issue), and state (open or closed) for the given URL.
+    Fetch the node ID, type (PullRequest or Issue), state, creation date, and closed date for the given URL.
 
     Parameters
     ----------
@@ -266,9 +326,10 @@ def _get_item_info(url: str, headers: dict[str, str]) -> tuple[str, str, str] | 
 
     Returns
     -------
-    tuple[str, str, str] or None
-        A tuple of (node_id, item_type, item_state) where item_type is
-        'PullRequest' or 'Issue', and item_state is 'open' or 'closed'.
+    tuple[str, str, str, str, str | None] or None
+        A tuple of (node_id, item_type, item_state, created_at, closed_at) where item_type is
+        'PullRequest' or 'Issue', item_state is 'open' or 'closed', created_at is an ISO 8601
+        datetime string, and closed_at is an ISO 8601 datetime string or None if not closed.
         Returns None if the URL does not resolve to a PR or Issue.
     """
     query = """
@@ -277,10 +338,14 @@ query GetItem($url: URI!) {
         ... on PullRequest {
             id
             state
+            createdAt
+            closedAt
         }
         ... on Issue {
             id
             state
+            createdAt
+            closedAt
         }
     }
 }
@@ -298,11 +363,13 @@ query GetItem($url: URI!) {
         return None
     node_id = resource["id"]
     item_state = resource["state"].lower()
+    created_at: str = resource["createdAt"]
+    closed_at: str | None = resource.get("closedAt")
 
     # Determine the type based on the URL path
     item_type = "PullRequest" if "/pull/" in url else "Issue"
 
-    return node_id, item_type, item_state
+    return node_id, item_type, item_state, created_at, closed_at
 
 
 def _add_item_to_project(project_id: str, content_id: str, headers: dict[str, str]) -> str | None:
@@ -409,4 +476,256 @@ mutation SetStatus($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: Stri
     except RuntimeError:
         if response.status_code != 403:
             raise
+
+
+def _set_item_date(
+    project_id: str,
+    item_id: str,
+    field_id: str,
+    date: str,
+    headers: dict[str, str],
+) -> None:
+    """
+    Set a date field of a project item.
+
+    Parameters
+    ----------
+    project_id : str
+        The global node ID of the GitHub Project v2.
+    item_id : str
+        The project item ID.
+    field_id : str
+        The global node ID of the date field.
+    date : str
+        The date value in ISO format (``YYYY-MM-DD``).
+    headers : dict[str, str]
+        HTTP headers including the Authorization token.
+    """
+    mutation = """
+mutation SetDate($projectId: ID!, $itemId: ID!, $fieldId: ID!, $date: Date!) {
+    updateProjectV2ItemFieldValue(
+        input: {
+            projectId: $projectId
+            itemId: $itemId
+            fieldId: $fieldId
+            value: { date: $date }
+        }
+    ) {
+        projectV2Item {
+            id
+        }
+    }
+}
+"""
+    variables = {
+        "projectId": project_id,
+        "itemId": item_id,
+        "fieldId": field_id,
+        "date": date,
+    }
+    response = requests.post(
+        url="https://api.github.com/graphql",
+        json={"query": mutation, "variables": variables},
+        headers=headers,
+    )
+    try:
+        _check_graphql_response(
+            response=response,
+            context=f"Failed to set date for item `{item_id}` in project `{project_id}`.",
+        )
+    except RuntimeError:
+        if response.status_code != 403:
+            raise
+
+
+def update_project_item_dates(
+    project_url: str,
+    end_date_placeholder_days: int = 180,
+) -> None:
+    """
+    Update the start and end date fields on all items already added to a GitHub Project (v2).
+
+    For each item in the project:
+    - The start date field ("Start date") is set to the item's creation date.
+    - The end date field ("End date") is set to the item's closed date (if closed),
+      or to ``end_date_placeholder_days`` days after the creation date otherwise.
+
+    If the project does not have a "Start date" or "End date" field, those updates are skipped.
+
+    Parameters
+    ----------
+    project_url : str
+        The URL of the GitHub Project v2,
+        e.g., ``https://github.com/users/username/projects/1``
+        or ``https://github.com/orgs/orgname/projects/1``.
+    end_date_placeholder_days : int, optional
+        Number of days after the item's creation date to use as the placeholder end date
+        when the item has not yet been closed. Default is 180 (approximately 6 months).
+    """
+    github_token = os.getenv("GITHUB_TOKEN")
+    if github_token is None:
+        message = "\nPlease set the `GITHUB_TOKEN` environment variable with a valid GitHub Personal Access Token!\n\n"
+        raise ValueError(message)
+
+    headers = {"Authorization": f"token {github_token}"}
+
+    project_id, _status_field_id, _status_options, start_date_field_id, end_date_field_id = _get_project_info(
+        project_url=project_url, headers=headers
+    )
+
+    if start_date_field_id is None and end_date_field_id is None:
+        warnings.warn(
+            message=(
+                f"Project `{project_url}` has no 'Start date' or 'End date' fields. "
+                "No date updates were performed."
+            ),
+            stacklevel=2,
+        )
+        return
+
+    # Parse owner type, login, and number from URL for the items query
+    parts = project_url.rstrip("/").split("/")
+    owner_type = parts[3]
+    owner_login = parts[4]
+    project_number = int(parts[6])
+
+    # Collect all project items with their content dates (paginated)
+    all_items = _list_project_items_with_dates(
+        owner_type=owner_type,
+        owner_login=owner_login,
+        project_number=project_number,
+        headers=headers,
+    )
+
+    for item in tqdm.tqdm(iterable=all_items, desc="Updating item dates", unit="items", dynamic_ncols=True):
+        item_id = item["id"]
+        created_at: str = item["createdAt"]
+        closed_at: str | None = item.get("closedAt")
+
+        if start_date_field_id is not None:
+            start_date = created_at[:10]
+            _set_item_date(
+                project_id=project_id,
+                item_id=item_id,
+                field_id=start_date_field_id,
+                date=start_date,
+                headers=headers,
+            )
+
+        if end_date_field_id is not None:
+            if closed_at is not None:
+                end_date = closed_at[:10]
+            else:
+                creation_date = datetime.date.fromisoformat(created_at[:10])
+                end_date = (creation_date + datetime.timedelta(days=end_date_placeholder_days)).isoformat()
+            _set_item_date(
+                project_id=project_id,
+                item_id=item_id,
+                field_id=end_date_field_id,
+                date=end_date,
+                headers=headers,
+            )
+
+
+def _list_project_items_with_dates(
+    owner_type: str,
+    owner_login: str,
+    project_number: int,
+    headers: dict[str, str],
+) -> list[dict]:
+    """
+    Return all project items with their content creation and close dates.
+
+    Parameters
+    ----------
+    owner_type : str
+        Either ``'users'`` or ``'orgs'``.
+    owner_login : str
+        The GitHub login of the project owner.
+    project_number : int
+        The number of the GitHub Project v2.
+    headers : dict[str, str]
+        HTTP headers including the Authorization token.
+
+    Returns
+    -------
+    list[dict]
+        A list of dicts, each with keys ``id``, ``createdAt``, and optionally ``closedAt``.
+    """
+    if owner_type == "users":
+        query = """
+query GetItems($login: String!, $number: Int!, $after: String) {
+    user(login: $login) {
+        projectV2(number: $number) {
+            items(first: 100, after: $after) {
+                nodes {
+                    id
+                    content {
+                        ... on PullRequest { createdAt closedAt }
+                        ... on Issue { createdAt closedAt }
+                    }
+                }
+                pageInfo { hasNextPage endCursor }
+            }
+        }
+    }
+}
+"""
+        data_path = ["data", "user", "projectV2", "items"]
+    else:
+        query = """
+query GetItems($login: String!, $number: Int!, $after: String) {
+    organization(login: $login) {
+        projectV2(number: $number) {
+            items(first: 100, after: $after) {
+                nodes {
+                    id
+                    content {
+                        ... on PullRequest { createdAt closedAt }
+                        ... on Issue { createdAt closedAt }
+                    }
+                }
+                pageInfo { hasNextPage endCursor }
+            }
+        }
+    }
+}
+"""
+        data_path = ["data", "organization", "projectV2", "items"]
+
+    all_items = []
+    after_cursor = None
+
+    while True:
+        variables = {"login": owner_login, "number": project_number, "after": after_cursor}
+        response = requests.post(
+            url="https://api.github.com/graphql",
+            json={"query": query, "variables": variables},
+            headers=headers,
+        )
+        result = _check_graphql_response(
+            response=response,
+            context=f"Failed to list project items for project {project_number}.",
+        )
+        items_data = result
+        for key in data_path:
+            items_data = items_data[key]
+
+        for node in items_data["nodes"]:
+            content = node.get("content")
+            if content and "createdAt" in content:
+                all_items.append(
+                    {
+                        "id": node["id"],
+                        "createdAt": content["createdAt"],
+                        "closedAt": content.get("closedAt"),
+                    }
+                )
+
+        page_info = items_data["pageInfo"]
+        if not page_info["hasNextPage"]:
+            break
+        after_cursor = page_info["endCursor"]
+
+    return all_items
 
