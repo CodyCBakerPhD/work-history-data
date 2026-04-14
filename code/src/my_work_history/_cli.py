@@ -3,7 +3,7 @@ import typing
 
 import rich_click
 
-from ._add_to_project import add_to_project
+from ._add_to_project import add_to_project, update_project_item_dates
 from ._create_project import create_project_page
 from ._minify import _minify
 from ._update import update
@@ -106,9 +106,56 @@ def _mywork_create_project_cli(owner: str, title: str) -> None:
         "When omitted, the status is derived from each item's type and state."
     ),
 )
-def _mywork_populate_cli(directory: str, project_url: str, status: str | None) -> None:
+@rich_click.option(
+    "--end-date-placeholder-days",
+    type=int,
+    default=180,
+    show_default=True,
+    required=False,
+    help=(
+        "Number of days after an item's creation date to use as the placeholder end date "
+        "when the item has not yet been closed. Default is 180 (approximately 6 months)."
+    ),
+)
+def _mywork_populate_cli(directory: str, project_url: str, status: str | None, end_date_placeholder_days: int) -> None:
     try:
-        add_to_project(directory=pathlib.Path(directory), project_url=project_url, status=status)
+        add_to_project(
+            directory=pathlib.Path(directory),
+            project_url=project_url,
+            status=status,
+            end_date_placeholder_days=end_date_placeholder_days,
+        )
+    except (ValueError, RuntimeError) as e:
+        rich_click.echo(rich_click.style(str(e), fg="red"))
+        raise SystemExit(1)
+
+
+# mywork update-dates
+@_mywork_cli.command(name="update-dates")
+@rich_click.option(
+    "--project-url",
+    type=str,
+    required=True,
+    help=(
+        "The URL of the GitHub Project v2 whose item dates should be updated. "
+        "E.g., `https://github.com/users/username/projects/1` "
+        "or `https://github.com/orgs/orgname/projects/1`."
+    ),
+)
+@rich_click.option(
+    "--end-date-placeholder-days",
+    type=int,
+    default=180,
+    show_default=True,
+    required=False,
+    help=(
+        "Number of days after an item's creation date to use as the placeholder end date "
+        "when the item has not yet been closed. Default is 180 (approximately 6 months)."
+    ),
+)
+def _mywork_update_dates_cli(project_url: str, end_date_placeholder_days: int) -> None:
+    try:
+        update_project_item_dates(project_url=project_url, end_date_placeholder_days=end_date_placeholder_days)
     except (ValueError, RuntimeError) as e:
         rich_click.echo(rich_click.style(str(e), fg="red"))
         raise SystemExit(1)
