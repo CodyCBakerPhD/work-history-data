@@ -2,6 +2,8 @@ import datetime
 import pathlib
 import typing
 
+import tqdm
+
 from ._dump import dump_info_for_date
 
 
@@ -13,12 +15,16 @@ def update(
 ) -> None:
     today = datetime.date.today()
 
-    date = today.strftime("%Y-%m-%d")
-    dump_info_for_date(directory=directory, date=date, username=username, request_type=request_type, overwrite=True)
-    date = (today - datetime.timedelta(days=1)).strftime("%Y-%m-%d")
-    dump_info_for_date(directory=directory, date=date, username=username, request_type=request_type, overwrite=True)
-    for day in range(2, past_number_of_days + 1):
-        date = (today - datetime.timedelta(days=day)).strftime("%Y-%m-%d")
-        dump_info_for_date(
-            directory=directory, date=date, username=username, request_type=request_type, overwrite=False
-        )
+    with tqdm.tqdm(
+        iterable=range(past_number_of_days + 1),
+        desc="Fetching work history",
+        unit="days",
+        dynamic_ncols=True,
+    ) as progress_bar:
+        for day in progress_bar:
+            date = (today - datetime.timedelta(days=day)).strftime("%Y-%m-%d")
+            progress_bar.set_postfix(date=date)
+            overwrite = day < 2
+            dump_info_for_date(
+                directory=directory, date=date, username=username, request_type=request_type, overwrite=overwrite
+            )
