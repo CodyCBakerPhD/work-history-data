@@ -6,14 +6,16 @@ import warnings
 import requests
 
 
-def add_to_project(directory: pathlib.Path, project_url: str) -> None:
+def add_to_project(directory: pathlib.Path, project_url: str, status: str | None = None) -> None:
     """
     Add all unique URLs from the derivatives directory to a GitHub Project (v2).
 
     For each item:
-    - If the Issue or PR is closed, it is given the 'Done' status.
-    - If the item is an open PR, it is given the 'In Progress' status.
-    - If the item is an open Issue, it is given the 'Todo' status.
+    - If ``status`` is provided, all items are assigned that status value.
+    - Otherwise, the status is derived from the item type and state:
+      - If the Issue or PR is closed, it is given the 'Done' status.
+      - If the item is an open PR, it is given the 'In Progress' status.
+      - If the item is an open Issue, it is given the 'Todo' status.
 
     Parameters
     ----------
@@ -25,6 +27,9 @@ def add_to_project(directory: pathlib.Path, project_url: str) -> None:
         The URL of the GitHub Project v2 to add items to,
         e.g., ``https://github.com/users/username/projects/1``
         or ``https://github.com/orgs/orgname/projects/1``.
+    status : str or None, optional
+        A custom status value to apply uniformly to all items added to the project.
+        If ``None`` (the default), the status is derived from each item's type and state.
     """
     github_token = os.getenv("GITHUB_TOKEN")
     if github_token is None:
@@ -57,13 +62,16 @@ def add_to_project(directory: pathlib.Path, project_url: str) -> None:
             continue
 
         # Determine the correct status
-        status_name = {
-            ("PullRequest", "closed"): "Done",
-            ("PullRequest", "merged"): "Done",
-            ("Issue", "closed"): "Done",
-            ("PullRequest", "open"): "In Progress",
-            ("Issue", "open"): "Todo",
-        }.get((item_type, item_state))
+        if status is not None:
+            status_name = status
+        else:
+            status_name = {
+                ("PullRequest", "closed"): "Done",
+                ("PullRequest", "merged"): "Done",
+                ("Issue", "closed"): "Done",
+                ("PullRequest", "open"): "In Progress",
+                ("Issue", "open"): "Todo",
+            }.get((item_type, item_state))
 
         # Find the option ID for the desired status
         option_id = status_options.get(status_name)
