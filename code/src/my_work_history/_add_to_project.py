@@ -301,9 +301,9 @@ query GetProject($login: String!, $number: Int!) {
             status_field_id = field["id"]
             for option in field.get("options", []):
                 status_options[option["name"]] = option["id"]
-        elif field.get("dataType") == "DATE" and field_name.lower() == "start date":
+        elif field.get("dataType") == "DATE" and field_name == "Start date":
             start_date_field_id = field["id"]
-        elif field.get("dataType") == "DATE" and field_name.lower() == "end date":
+        elif field.get("dataType") == "DATE" and field_name == "End date":
             end_date_field_id = field["id"]
 
     if status_field_id is None:
