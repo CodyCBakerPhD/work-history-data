@@ -60,7 +60,52 @@ mutation CreateProject($ownerId: ID!, $title: String!) {
         raise RuntimeError(message)
 
     project = result["data"]["createProjectV2"]["projectV2"]
-    return {"id": project["id"], "url": project["url"]}
+    project_id = project["id"]
+
+    # Create the canonical date fields expected by the populate / update-dates commands
+    _create_date_field(project_id=project_id, field_name="Start date", headers=headers)
+    _create_date_field(project_id=project_id, field_name="End date", headers=headers)
+
+    return {"id": project_id, "url": project["url"]}
+
+
+def _create_date_field(project_id: str, field_name: str, headers: dict[str, str]) -> None:
+    """
+    Create a DATE field with the given name on a GitHub Project (v2).
+
+    Parameters
+    ----------
+    project_id : str
+        The global node ID of the project.
+    field_name : str
+        The name to assign to the new DATE field (e.g. ``"Start date"``).
+    headers : dict[str, str]
+        HTTP headers including the Authorization token.
+    """
+    mutation = """
+mutation CreateField($projectId: ID!, $name: String!) {
+    createProjectV2Field(input: {projectId: $projectId, dataType: DATE, name: $name}) {
+        projectV2Field {
+            ... on ProjectV2Field {
+                id
+                name
+            }
+        }
+    }
+}
+"""
+    variables = {"projectId": project_id, "name": field_name}
+    response = requests.post(
+        url="https://api.github.com/graphql",
+        json={"query": mutation, "variables": variables},
+        headers=headers,
+    )
+    status = response.status_code
+    result = response.json()
+
+    if "errors" in result or status != 200:
+        message = f"GitHub GraphQL API mutation to create field `{field_name}` failed!\nStatus code {status}: {result}"
+        raise RuntimeError(message)
 
 
 def _get_owner_node_id(owner: str, headers: dict[str, str]) -> str:
