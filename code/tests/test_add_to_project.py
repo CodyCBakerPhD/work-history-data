@@ -15,6 +15,7 @@ from my_work_history._add_to_project import (
     _collect_unique_urls,
     _get_item_info,
     _get_project_info,
+    _list_project_item_content_urls,
     _list_project_items_with_dates,
     _set_item_date,
     _set_item_status,
@@ -492,7 +493,22 @@ def test_add_to_project_end_to_end(monkeypatch: pytest.MonkeyPatch, tmp_path: pa
         "data": {"updateProjectV2ItemFieldValue": {"projectV2Item": {"id": "PVTI_new"}}}
     }
 
-    response_sequence = [project_info_response, item_info_response, add_item_response, set_status_response]
+    empty_project_response = unittest.mock.MagicMock()
+    empty_project_response.status_code = 200
+    empty_project_response.json.return_value = {
+        "data": {
+            "user": {
+                "projectV2": {
+                    "items": {
+                        "nodes": [],
+                        "pageInfo": {"hasNextPage": False, "endCursor": None},
+                    }
+                }
+            }
+        }
+    }
+
+    response_sequence = [project_info_response, empty_project_response, item_info_response, add_item_response, set_status_response]
 
     with unittest.mock.patch("requests.post", side_effect=response_sequence):
         my_work_history.add_to_project(
@@ -534,8 +550,23 @@ def test_add_to_project_skips_url_with_null_resource(
     null_resource_response.status_code = 200
     null_resource_response.json.return_value = {"data": {"resource": None}}
 
+    empty_project_response = unittest.mock.MagicMock()
+    empty_project_response.status_code = 200
+    empty_project_response.json.return_value = {
+        "data": {
+            "user": {
+                "projectV2": {
+                    "items": {
+                        "nodes": [],
+                        "pageInfo": {"hasNextPage": False, "endCursor": None},
+                    }
+                }
+            }
+        }
+    }
+
     with unittest.mock.patch(
-        "requests.post", side_effect=[project_info_response, null_resource_response]
+        "requests.post", side_effect=[project_info_response, empty_project_response, null_resource_response]
     ):
         with _warnings_module.catch_warnings():
             _warnings_module.simplefilter("error")
@@ -603,7 +634,22 @@ def test_add_to_project_status_override(monkeypatch: pytest.MonkeyPatch, tmp_pat
         "data": {"updateProjectV2ItemFieldValue": {"projectV2Item": {"id": "PVTI_new"}}}
     }
 
-    response_sequence = [project_info_response, item_info_response, add_item_response, set_status_response]
+    empty_project_response = unittest.mock.MagicMock()
+    empty_project_response.status_code = 200
+    empty_project_response.json.return_value = {
+        "data": {
+            "user": {
+                "projectV2": {
+                    "items": {
+                        "nodes": [],
+                        "pageInfo": {"hasNextPage": False, "endCursor": None},
+                    }
+                }
+            }
+        }
+    }
+
+    response_sequence = [project_info_response, empty_project_response, item_info_response, add_item_response, set_status_response]
 
     with unittest.mock.patch("requests.post", side_effect=response_sequence) as mock_post:
         my_work_history.add_to_project(
@@ -667,7 +713,22 @@ def test_add_to_project_status_override_unknown_status_warns(
         "data": {"addProjectV2ItemById": {"item": {"id": "PVTI_new"}}}
     }
 
-    response_sequence = [project_info_response, item_info_response, add_item_response]
+    empty_project_response = unittest.mock.MagicMock()
+    empty_project_response.status_code = 200
+    empty_project_response.json.return_value = {
+        "data": {
+            "user": {
+                "projectV2": {
+                    "items": {
+                        "nodes": [],
+                        "pageInfo": {"hasNextPage": False, "endCursor": None},
+                    }
+                }
+            }
+        }
+    }
+
+    response_sequence = [project_info_response, empty_project_response, item_info_response, add_item_response]
 
     with unittest.mock.patch("requests.post", side_effect=response_sequence):
         with pytest.warns(UserWarning, match="not found in project"):
@@ -761,9 +822,25 @@ def test_add_to_project_sets_dates_when_fields_present(
         "data": {"updateProjectV2ItemFieldValue": {"projectV2Item": {"id": "PVTI_new"}}}
     }
 
-    # project_info, item_info, add_item, set_status, set_start_date, set_end_date
+    empty_project_response = unittest.mock.MagicMock()
+    empty_project_response.status_code = 200
+    empty_project_response.json.return_value = {
+        "data": {
+            "user": {
+                "projectV2": {
+                    "items": {
+                        "nodes": [],
+                        "pageInfo": {"hasNextPage": False, "endCursor": None},
+                    }
+                }
+            }
+        }
+    }
+
+    # project_info, list_project_item_content_urls, item_info, add_item, set_status, set_start_date, set_end_date
     response_sequence = [
         project_info_response,
+        empty_project_response,
         item_info_response,
         add_item_response,
         set_field_response,  # set_status
@@ -777,15 +854,15 @@ def test_add_to_project_sets_dates_when_fields_present(
             project_url="https://github.com/users/testuser/projects/1",
         )
 
-    # 6 calls total: project_info, item_info, add_item, set_status, set_start_date, set_end_date
-    assert mock_post.call_count == 6
-    # Check start date call (5th call, index 4)
-    start_date_call = mock_post.call_args_list[4]
+    # 7 calls total: project_info, list_project_item_content_urls, item_info, add_item, set_status, set_start_date, set_end_date
+    assert mock_post.call_count == 7
+    # Check start date call (6th call, index 5)
+    start_date_call = mock_post.call_args_list[5]
     start_vars = start_date_call.kwargs["json"]["variables"]
     assert start_vars["fieldId"] == "PVTF_start"
     assert start_vars["date"] == "2023-01-10"
-    # Check end date call (6th call, index 5)
-    end_date_call = mock_post.call_args_list[5]
+    # Check end date call (7th call, index 6)
+    end_date_call = mock_post.call_args_list[6]
     end_vars = end_date_call.kwargs["json"]["variables"]
     assert end_vars["fieldId"] == "PVTF_end"
     assert end_vars["date"] == "2023-02-01"
@@ -847,8 +924,24 @@ def test_add_to_project_uses_placeholder_end_date_for_open_item(
         "data": {"updateProjectV2ItemFieldValue": {"projectV2Item": {"id": "PVTI_new"}}}
     }
 
+    empty_project_response = unittest.mock.MagicMock()
+    empty_project_response.status_code = 200
+    empty_project_response.json.return_value = {
+        "data": {
+            "user": {
+                "projectV2": {
+                    "items": {
+                        "nodes": [],
+                        "pageInfo": {"hasNextPage": False, "endCursor": None},
+                    }
+                }
+            }
+        }
+    }
+
     response_sequence = [
         project_info_response,
+        empty_project_response,
         item_info_response,
         add_item_response,
         set_field_response,  # set_status
@@ -1048,6 +1141,169 @@ def test_list_project_items_with_dates_returns_items() -> None:
     assert items[0]["id"] == "PVTI_1"
     assert items[0]["createdAt"] == "2023-01-01T00:00:00Z"
     assert items[0]["closedAt"] == "2023-06-01T00:00:00Z"
+
+
+def test_list_project_item_content_urls_returns_urls() -> None:
+    """_list_project_item_content_urls returns the set of content URLs already in the project."""
+    mock_response = unittest.mock.MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {
+        "data": {
+            "user": {
+                "projectV2": {
+                    "items": {
+                        "nodes": [
+                            {"content": {"url": "https://github.com/owner/repo/pull/1"}},
+                            {"content": {"url": "https://github.com/owner/repo/issues/2"}},
+                            {"content": None},
+                        ],
+                        "pageInfo": {"hasNextPage": False, "endCursor": None},
+                    }
+                }
+            }
+        }
+    }
+
+    with unittest.mock.patch("requests.post", return_value=mock_response):
+        urls = _list_project_item_content_urls(
+            owner_type="users",
+            owner_login="testuser",
+            project_number=1,
+            headers={"Authorization": "token fake-token"},
+        )
+
+    assert urls == {
+        "https://github.com/owner/repo/pull/1",
+        "https://github.com/owner/repo/issues/2",
+    }
+
+
+def test_list_project_item_content_urls_returns_empty_set_when_no_items() -> None:
+    """_list_project_item_content_urls returns an empty set when the project has no items."""
+    mock_response = unittest.mock.MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {
+        "data": {
+            "user": {
+                "projectV2": {
+                    "items": {
+                        "nodes": [],
+                        "pageInfo": {"hasNextPage": False, "endCursor": None},
+                    }
+                }
+            }
+        }
+    }
+
+    with unittest.mock.patch("requests.post", return_value=mock_response):
+        urls = _list_project_item_content_urls(
+            owner_type="users",
+            owner_login="testuser",
+            project_number=1,
+            headers={"Authorization": "token fake-token"},
+        )
+
+    assert urls == set()
+
+
+def test_add_to_project_skips_items_already_in_project(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path
+) -> None:
+    """Items whose URLs are already in the project are excluded and not re-added."""
+    monkeypatch.setenv("GITHUB_TOKEN", "fake-token")
+
+    existing_pr_url = "https://github.com/owner/repo/pull/1"
+    new_pr_url = "https://github.com/owner/repo/pull/2"
+    (tmp_path / "urls.json").write_text(json.dumps([existing_pr_url, new_pr_url]))
+
+    project_info_response = unittest.mock.MagicMock()
+    project_info_response.status_code = 200
+    project_info_response.json.return_value = {
+        "data": {
+            "user": {
+                "projectV2": {
+                    "id": "PVT_project",
+                    "fields": {
+                        "nodes": [
+                            {
+                                "id": "PVTSSF_status",
+                                "name": "Status",
+                                "options": [{"id": "opt_done", "name": "Done"}],
+                            }
+                        ]
+                    },
+                }
+            }
+        }
+    }
+
+    list_urls_response = unittest.mock.MagicMock()
+    list_urls_response.status_code = 200
+    list_urls_response.json.return_value = {
+        "data": {
+            "user": {
+                "projectV2": {
+                    "items": {
+                        "nodes": [
+                            {"content": {"url": existing_pr_url}},
+                        ],
+                        "pageInfo": {"hasNextPage": False, "endCursor": None},
+                    }
+                }
+            }
+        }
+    }
+
+    item_info_response = unittest.mock.MagicMock()
+    item_info_response.status_code = 200
+    item_info_response.json.return_value = {
+        "data": {
+            "resource": {
+                "id": "PR2_node_id",
+                "state": "CLOSED",
+                "createdAt": "2023-05-01T00:00:00Z",
+                "closedAt": "2023-06-01T00:00:00Z",
+            }
+        }
+    }
+
+    add_item_response = unittest.mock.MagicMock()
+    add_item_response.status_code = 200
+    add_item_response.json.return_value = {
+        "data": {"addProjectV2ItemById": {"item": {"id": "PVTI_new"}}}
+    }
+
+    set_status_response = unittest.mock.MagicMock()
+    set_status_response.status_code = 200
+    set_status_response.json.return_value = {
+        "data": {"updateProjectV2ItemFieldValue": {"projectV2Item": {"id": "PVTI_new"}}}
+    }
+
+    # Only new_pr_url should be processed: project_info, list_urls, item_info, add_item, set_status
+    response_sequence = [
+        project_info_response,
+        list_urls_response,
+        item_info_response,
+        add_item_response,
+        set_status_response,
+    ]
+
+    with unittest.mock.patch("requests.post", side_effect=response_sequence) as mock_post:
+        my_work_history.add_to_project(
+            directory=tmp_path,
+            project_url="https://github.com/users/testuser/projects/1",
+        )
+
+    # 5 calls: project_info, list_urls, item_info (for new_pr only), add_item, set_status
+    assert mock_post.call_count == 5
+
+    # Verify the item_info call was for new_pr_url, not existing_pr_url
+    item_info_call = mock_post.call_args_list[2]
+    assert item_info_call.kwargs["json"]["variables"]["url"] == new_pr_url
+
+    # Verify add_item was called with the node ID for the new item only
+    add_item_call = mock_post.call_args_list[3]
+    assert add_item_call.kwargs["json"]["variables"]["contentId"] == "PR2_node_id"
 
 
 # ---------------------------------------------------------------------------
