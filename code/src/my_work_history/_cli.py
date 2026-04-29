@@ -3,7 +3,7 @@ import typing
 
 import rich_click
 
-from ._add_to_project import add_to_project, update_project_item_dates
+from ._add_to_project import add_to_project, move_done_to_history, update_project_item_dates
 from ._create_project import create_project_page
 from ._minify import _minify
 from ._update import update
@@ -156,6 +156,26 @@ def _mywork_populate_cli(directory: str, project_url: str, status: str | None, e
 def _mywork_update_dates_cli(project_url: str, end_date_placeholder_days: int) -> None:
     try:
         update_project_item_dates(project_url=project_url, end_date_placeholder_days=end_date_placeholder_days)
+    except (ValueError, RuntimeError) as e:
+        rich_click.echo(rich_click.style(str(e), fg="red"))
+        raise SystemExit(1)
+
+
+# mywork move-done-to-history
+@_mywork_cli.command(name="move-done-to-history")
+@rich_click.option(
+    "--project-url",
+    type=str,
+    required=True,
+    help=(
+        "The URL of the GitHub Project v2 in which to move all 'Done' items to 'History'. "
+        "E.g., `https://github.com/users/username/projects/1` "
+        "or `https://github.com/orgs/orgname/projects/1`."
+    ),
+)
+def _mywork_move_done_to_history_cli(project_url: str) -> None:
+    try:
+        move_done_to_history(project_url=project_url)
     except (ValueError, RuntimeError) as e:
         rich_click.echo(rich_click.style(str(e), fg="red"))
         raise SystemExit(1)

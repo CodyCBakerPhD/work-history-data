@@ -17,8 +17,10 @@ from my_work_history._add_to_project import (
     _get_project_info,
     _list_project_item_content_urls,
     _list_project_items_with_dates,
+    _list_project_items_with_status,
     _set_item_date,
     _set_item_status,
+    move_done_to_history,
     update_project_item_dates,
 )
 
@@ -1336,6 +1338,291 @@ def test_add_to_project_skips_items_already_in_project(
     # Verify add_item was called with the node ID for the new item only
     add_item_call = mock_post.call_args_list[3]
     assert add_item_call.kwargs["json"]["variables"]["contentId"] == "PR2_node_id"
+
+
+@pytest.mark.ai_generated
+def test_list_project_items_with_status_returns_items() -> None:
+    """_list_project_items_with_status returns item IDs with their status option IDs."""
+    mock_response = unittest.mock.MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {
+        "data": {
+            "user": {
+                "projectV2": {
+                    "items": {
+                        "nodes": [
+                            {
+                                "id": "PVTI_done",
+                                "fieldValues": {
+                                    "nodes": [
+                                        {
+                                            "optionId": "opt_done",
+                                            "field": {"id": "PVTSSF_status"},
+                                        }
+                                    ]
+                                },
+                            },
+                            {
+                                "id": "PVTI_progress",
+                                "fieldValues": {
+                                    "nodes": [
+                                        {
+                                            "optionId": "opt_progress",
+                                            "field": {"id": "PVTSSF_status"},
+                                        }
+                                    ]
+                                },
+                            },
+                            {
+                                "id": "PVTI_no_status",
+                                "fieldValues": {"nodes": []},
+                            },
+                        ],
+                        "pageInfo": {"hasNextPage": False, "endCursor": None},
+                    }
+                }
+            }
+        }
+    }
+
+    with unittest.mock.patch("requests.post", return_value=mock_response):
+        items = _list_project_items_with_status(
+            owner_type="users",
+            owner_login="testuser",
+            project_number=1,
+            status_field_id="PVTSSF_status",
+            headers={"Authorization": "token fake-token"},
+        )
+
+    assert len(items) == 3
+    assert items[0] == {"id": "PVTI_done", "status_option_id": "opt_done"}
+    assert items[1] == {"id": "PVTI_progress", "status_option_id": "opt_progress"}
+    assert items[2] == {"id": "PVTI_no_status", "status_option_id": None}
+
+
+@pytest.mark.ai_generated
+def test_move_done_to_history_raises_without_token(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+
+    with pytest.raises(ValueError, match="GITHUB_TOKEN"):
+        move_done_to_history(project_url="https://github.com/users/testuser/projects/1")
+
+
+@pytest.mark.ai_generated
+def test_move_done_to_history_raises_when_done_option_missing(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Raises ValueError when the project has no 'Done' status option."""
+    monkeypatch.setenv("GITHUB_TOKEN", "fake-token")
+
+    project_info_response = unittest.mock.MagicMock()
+    project_info_response.status_code = 200
+    project_info_response.json.return_value = {
+        "data": {
+            "user": {
+                "projectV2": {
+                    "id": "PVT_project",
+                    "fields": {
+                        "nodes": [
+                            {
+                                "id": "PVTSSF_status",
+                                "name": "Status",
+                                "options": [{"id": "opt_history", "name": "History"}],
+                            }
+                        ]
+                    },
+                }
+            }
+        }
+    }
+
+    with unittest.mock.patch("requests.post", return_value=project_info_response):
+        with pytest.raises(ValueError, match="'Done' not found"):
+            move_done_to_history(project_url="https://github.com/users/testuser/projects/1")
+
+
+@pytest.mark.ai_generated
+def test_move_done_to_history_raises_when_history_option_missing(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Raises ValueError when the project has no 'History' status option."""
+    monkeypatch.setenv("GITHUB_TOKEN", "fake-token")
+
+    project_info_response = unittest.mock.MagicMock()
+    project_info_response.status_code = 200
+    project_info_response.json.return_value = {
+        "data": {
+            "user": {
+                "projectV2": {
+                    "id": "PVT_project",
+                    "fields": {
+                        "nodes": [
+                            {
+                                "id": "PVTSSF_status",
+                                "name": "Status",
+                                "options": [{"id": "opt_done", "name": "Done"}],
+                            }
+                        ]
+                    },
+                }
+            }
+        }
+    }
+
+    with unittest.mock.patch("requests.post", return_value=project_info_response):
+        with pytest.raises(ValueError, match="'History' not found"):
+            move_done_to_history(project_url="https://github.com/users/testuser/projects/1")
+
+
+@pytest.mark.ai_generated
+def test_move_done_to_history_moves_only_done_items(monkeypatch: pytest.MonkeyPatch) -> None:
+    """move_done_to_history sets Status=History only on items that currently have Status=Done."""
+    monkeypatch.setenv("GITHUB_TOKEN", "fake-token")
+
+    project_info_response = unittest.mock.MagicMock()
+    project_info_response.status_code = 200
+    project_info_response.json.return_value = {
+        "data": {
+            "user": {
+                "projectV2": {
+                    "id": "PVT_project",
+                    "fields": {
+                        "nodes": [
+                            {
+                                "id": "PVTSSF_status",
+                                "name": "Status",
+                                "options": [
+                                    {"id": "opt_done", "name": "Done"},
+                                    {"id": "opt_history", "name": "History"},
+                                    {"id": "opt_progress", "name": "In Progress"},
+                                ],
+                            }
+                        ]
+                    },
+                }
+            }
+        }
+    }
+
+    list_items_response = unittest.mock.MagicMock()
+    list_items_response.status_code = 200
+    list_items_response.json.return_value = {
+        "data": {
+            "user": {
+                "projectV2": {
+                    "items": {
+                        "nodes": [
+                            {
+                                "id": "PVTI_done_1",
+                                "fieldValues": {
+                                    "nodes": [
+                                        {"optionId": "opt_done", "field": {"id": "PVTSSF_status"}}
+                                    ]
+                                },
+                            },
+                            {
+                                "id": "PVTI_done_2",
+                                "fieldValues": {
+                                    "nodes": [
+                                        {"optionId": "opt_done", "field": {"id": "PVTSSF_status"}}
+                                    ]
+                                },
+                            },
+                            {
+                                "id": "PVTI_in_progress",
+                                "fieldValues": {
+                                    "nodes": [
+                                        {"optionId": "opt_progress", "field": {"id": "PVTSSF_status"}}
+                                    ]
+                                },
+                            },
+                        ],
+                        "pageInfo": {"hasNextPage": False, "endCursor": None},
+                    }
+                }
+            }
+        }
+    }
+
+    set_status_response = unittest.mock.MagicMock()
+    set_status_response.status_code = 200
+    set_status_response.json.return_value = {
+        "data": {"updateProjectV2ItemFieldValue": {"projectV2Item": {"id": "PVTI_done_1"}}}
+    }
+
+    # project_info, list_items_with_status, set_status (×2 for the two Done items)
+    response_sequence = [
+        project_info_response,
+        list_items_response,
+        set_status_response,
+        set_status_response,
+    ]
+
+    with unittest.mock.patch("requests.post", side_effect=response_sequence) as mock_post:
+        my_work_history.move_done_to_history(project_url="https://github.com/users/testuser/projects/1")
+
+    # 4 calls: project_info, list_items, set_status×2
+    assert mock_post.call_count == 4
+
+    # Both set_status calls must use the History option ID
+    for call in mock_post.call_args_list[2:]:
+        variables = call.kwargs["json"]["variables"]
+        assert variables["optionId"] == "opt_history"
+        assert variables["fieldId"] == "PVTSSF_status"
+
+    # Verify the two item IDs that were moved
+    moved_item_ids = {
+        mock_post.call_args_list[2].kwargs["json"]["variables"]["itemId"],
+        mock_post.call_args_list[3].kwargs["json"]["variables"]["itemId"],
+    }
+    assert moved_item_ids == {"PVTI_done_1", "PVTI_done_2"}
+
+
+@pytest.mark.ai_generated
+def test_move_done_to_history_no_done_items(monkeypatch: pytest.MonkeyPatch) -> None:
+    """move_done_to_history makes no set_status calls when there are no Done items."""
+    monkeypatch.setenv("GITHUB_TOKEN", "fake-token")
+
+    project_info_response = unittest.mock.MagicMock()
+    project_info_response.status_code = 200
+    project_info_response.json.return_value = {
+        "data": {
+            "user": {
+                "projectV2": {
+                    "id": "PVT_project",
+                    "fields": {
+                        "nodes": [
+                            {
+                                "id": "PVTSSF_status",
+                                "name": "Status",
+                                "options": [
+                                    {"id": "opt_done", "name": "Done"},
+                                    {"id": "opt_history", "name": "History"},
+                                ],
+                            }
+                        ]
+                    },
+                }
+            }
+        }
+    }
+
+    list_items_response = unittest.mock.MagicMock()
+    list_items_response.status_code = 200
+    list_items_response.json.return_value = {
+        "data": {
+            "user": {
+                "projectV2": {
+                    "items": {
+                        "nodes": [],
+                        "pageInfo": {"hasNextPage": False, "endCursor": None},
+                    }
+                }
+            }
+        }
+    }
+
+    with unittest.mock.patch("requests.post", side_effect=[project_info_response, list_items_response]) as mock_post:
+        my_work_history.move_done_to_history(project_url="https://github.com/users/testuser/projects/1")
+
+    # Only 2 calls: project_info and list_items; no set_status calls
+    assert mock_post.call_count == 2
 
 
 # ---------------------------------------------------------------------------
