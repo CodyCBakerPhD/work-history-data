@@ -22,7 +22,6 @@ from my_work_history._add_to_project import (
     update_project_item_dates,
 )
 
-pytestmark = pytest.mark.ai_generated
 
 # ---------------------------------------------------------------------------
 # Helpers shared across integration tests
@@ -114,6 +113,7 @@ mutation($projectId: ID!, $itemId: ID!) {
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.ai_generated
 def test_add_to_project_raises_without_token(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("GITHUB_TOKEN", raising=False)
 
@@ -124,6 +124,7 @@ def test_add_to_project_raises_without_token(monkeypatch: pytest.MonkeyPatch) ->
         )
 
 
+@pytest.mark.ai_generated
 def test_add_to_project_warns_when_no_urls(monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path) -> None:
     monkeypatch.setenv("GITHUB_TOKEN", "fake-token")
 
@@ -131,6 +132,7 @@ def test_add_to_project_warns_when_no_urls(monkeypatch: pytest.MonkeyPatch, tmp_
         my_work_history.add_to_project(directory=tmp_path, project_url=_TEST_PROJECT_URL)
 
 
+@pytest.mark.ai_generated
 def test_collect_unique_urls_reads_json_files(tmp_path: pathlib.Path) -> None:
     urls_a = ["https://github.com/owner/repo/pull/1", "https://github.com/owner/repo/pull/2"]
     urls_b = ["https://github.com/owner/repo/pull/2", "https://github.com/owner/repo/issues/3"]
@@ -149,6 +151,7 @@ def test_collect_unique_urls_reads_json_files(tmp_path: pathlib.Path) -> None:
     }
 
 
+@pytest.mark.ai_generated
 def test_collect_unique_urls_handles_rest_format(tmp_path: pathlib.Path) -> None:
     """REST API response dicts should have html_url extracted from items, not dict keys."""
     rest_response = {
@@ -170,6 +173,7 @@ def test_collect_unique_urls_handles_rest_format(tmp_path: pathlib.Path) -> None
     }
 
 
+@pytest.mark.ai_generated
 def test_collect_unique_urls_mixed_formats(tmp_path: pathlib.Path) -> None:
     """A directory with both REST and GraphQL JSON files should collect all URLs correctly."""
     graphql_urls = ["https://github.com/owner/repo/pull/1"]
@@ -190,6 +194,7 @@ def test_collect_unique_urls_mixed_formats(tmp_path: pathlib.Path) -> None:
     }
 
 
+@pytest.mark.ai_generated
 def test_check_graphql_response_returns_result_on_success() -> None:
     mock_response = unittest.mock.MagicMock()
     mock_response.status_code = 200
@@ -200,6 +205,7 @@ def test_check_graphql_response_returns_result_on_success() -> None:
     assert result == {"data": {"foo": "bar"}}
 
 
+@pytest.mark.ai_generated
 def test_check_graphql_response_warns_on_403() -> None:
     mock_response = unittest.mock.MagicMock()
     mock_response.status_code = 403
@@ -210,6 +216,7 @@ def test_check_graphql_response_warns_on_403() -> None:
             _check_graphql_response(response=mock_response, context="test 403")
 
 
+@pytest.mark.ai_generated
 def test_check_graphql_response_raises_on_errors_key() -> None:
     mock_response = unittest.mock.MagicMock()
     mock_response.status_code = 200
@@ -219,6 +226,7 @@ def test_check_graphql_response_raises_on_errors_key() -> None:
         _check_graphql_response(response=mock_response, context="test errors")
 
 
+@pytest.mark.ai_generated
 def test_get_project_info_parses_user_url() -> None:
     mock_response = unittest.mock.MagicMock()
     mock_response.status_code = 200
@@ -261,6 +269,7 @@ def test_get_project_info_parses_user_url() -> None:
     assert end_date_field_id == "PVTF_end"
 
 
+@pytest.mark.ai_generated
 def test_get_project_info_returns_none_for_missing_date_fields() -> None:
     """When the project has no Start date / End date fields, their IDs are None."""
     mock_response = unittest.mock.MagicMock()
@@ -292,6 +301,7 @@ def test_get_project_info_returns_none_for_missing_date_fields() -> None:
         )
 
 
+@pytest.mark.ai_generated
 def test_get_project_info_raises_when_no_status_field() -> None:
     mock_response = unittest.mock.MagicMock()
     mock_response.status_code = 200
@@ -315,6 +325,7 @@ def test_get_project_info_raises_when_no_status_field() -> None:
             )
 
 
+@pytest.mark.ai_generated
 def test_get_item_info_returns_none_when_resource_is_null() -> None:
     mock_response = unittest.mock.MagicMock()
     mock_response.status_code = 200
@@ -327,6 +338,7 @@ def test_get_item_info_returns_none_when_resource_is_null() -> None:
     assert result is None
 
 
+@pytest.mark.ai_generated
 def test_get_item_info_classifies_pull_request() -> None:
     mock_response = unittest.mock.MagicMock()
     mock_response.status_code = 200
@@ -354,6 +366,7 @@ def test_get_item_info_classifies_pull_request() -> None:
     assert closed_at == "2023-02-01T09:00:00Z"
 
 
+@pytest.mark.ai_generated
 def test_get_item_info_classifies_issue() -> None:
     mock_response = unittest.mock.MagicMock()
     mock_response.status_code = 200
@@ -381,6 +394,7 @@ def test_get_item_info_classifies_issue() -> None:
     assert closed_at is None
 
 
+@pytest.mark.ai_generated
 def test_add_item_to_project_returns_item_id() -> None:
     mock_response = unittest.mock.MagicMock()
     mock_response.status_code = 200
@@ -397,6 +411,7 @@ def test_add_item_to_project_returns_item_id() -> None:
     assert item_id == "PVTI_item_id"
 
 
+@pytest.mark.ai_generated
 def test_add_item_to_project_returns_none_on_403() -> None:
     mock_response = unittest.mock.MagicMock()
     mock_response.status_code = 403
@@ -412,6 +427,7 @@ def test_add_item_to_project_returns_none_on_403() -> None:
     assert item_id is None
 
 
+@pytest.mark.ai_generated
 def test_set_item_status_calls_mutation() -> None:
     mock_response = unittest.mock.MagicMock()
     mock_response.status_code = 200
@@ -438,6 +454,7 @@ def test_set_item_status_calls_mutation() -> None:
     assert variables["optionId"] == "opt_done"
 
 
+@pytest.mark.ai_generated
 def test_add_to_project_end_to_end(monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path) -> None:
     """Full flow test using mocked HTTP calls."""
     monkeypatch.setenv("GITHUB_TOKEN", "fake-token")
@@ -519,6 +536,7 @@ def test_add_to_project_end_to_end(monkeypatch: pytest.MonkeyPatch, tmp_path: pa
         )
 
 
+@pytest.mark.ai_generated
 def test_add_to_project_skips_url_with_null_resource(
     monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path
 ) -> None:
@@ -578,6 +596,7 @@ def test_add_to_project_skips_url_with_null_resource(
             )
 
 
+@pytest.mark.ai_generated
 def test_add_to_project_status_override(monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path) -> None:
     """When a custom status is provided, all items receive that status regardless of their type/state."""
     monkeypatch.setenv("GITHUB_TOKEN", "fake-token")
@@ -666,6 +685,7 @@ def test_add_to_project_status_override(monkeypatch: pytest.MonkeyPatch, tmp_pat
     assert variables["optionId"] == "opt_progress"
 
 
+@pytest.mark.ai_generated
 def test_add_to_project_status_override_unknown_status_warns(
     monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path
 ) -> None:
@@ -741,6 +761,7 @@ def test_add_to_project_status_override_unknown_status_warns(
             )
 
 
+@pytest.mark.ai_generated
 def test_set_item_date_calls_mutation() -> None:
     mock_response = unittest.mock.MagicMock()
     mock_response.status_code = 200
@@ -767,6 +788,7 @@ def test_set_item_date_calls_mutation() -> None:
     assert variables["date"] == "2023-01-15"
 
 
+@pytest.mark.ai_generated
 def test_add_to_project_sets_dates_when_fields_present(
     monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path
 ) -> None:
@@ -870,6 +892,7 @@ def test_add_to_project_sets_dates_when_fields_present(
     assert end_vars["date"] == "2023-02-01"
 
 
+@pytest.mark.ai_generated
 def test_add_to_project_uses_placeholder_end_date_for_open_item(
     monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path
 ) -> None:
@@ -964,6 +987,7 @@ def test_add_to_project_uses_placeholder_end_date_for_open_item(
     assert end_vars["date"] == "2023-07-01"
 
 
+@pytest.mark.ai_generated
 def test_update_project_item_dates_raises_without_token(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("GITHUB_TOKEN", raising=False)
 
@@ -971,6 +995,7 @@ def test_update_project_item_dates_raises_without_token(monkeypatch: pytest.Monk
         update_project_item_dates(project_url="https://github.com/users/testuser/projects/1")
 
 
+@pytest.mark.ai_generated
 def test_update_project_item_dates_warns_when_no_date_fields(monkeypatch: pytest.MonkeyPatch) -> None:
     """When the project has no Start date / End date fields, a warning is emitted and no updates are made."""
     monkeypatch.setenv("GITHUB_TOKEN", "fake-token")
@@ -1001,6 +1026,7 @@ def test_update_project_item_dates_warns_when_no_date_fields(monkeypatch: pytest
             update_project_item_dates(project_url="https://github.com/users/testuser/projects/1")
 
 
+@pytest.mark.ai_generated
 def test_update_project_item_dates_updates_items(monkeypatch: pytest.MonkeyPatch) -> None:
     """update_project_item_dates sets dates on all items already in the project."""
     monkeypatch.setenv("GITHUB_TOKEN", "fake-token")
@@ -1106,6 +1132,7 @@ def test_update_project_item_dates_updates_items(monkeypatch: pytest.MonkeyPatch
     assert item2_end["date"] == "2023-04-04"
 
 
+@pytest.mark.ai_generated
 def test_list_project_items_with_dates_returns_items() -> None:
     mock_response = unittest.mock.MagicMock()
     mock_response.status_code = 200
@@ -1145,6 +1172,7 @@ def test_list_project_items_with_dates_returns_items() -> None:
     assert items[0]["closedAt"] == "2023-06-01T00:00:00Z"
 
 
+@pytest.mark.ai_generated
 def test_list_project_item_content_urls_returns_urls() -> None:
     """_list_project_item_content_urls returns the set of content URLs already in the project."""
     mock_response = unittest.mock.MagicMock()
@@ -1180,6 +1208,7 @@ def test_list_project_item_content_urls_returns_urls() -> None:
     }
 
 
+@pytest.mark.ai_generated
 def test_list_project_item_content_urls_returns_empty_set_when_no_items() -> None:
     """_list_project_item_content_urls returns an empty set when the project has no items."""
     mock_response = unittest.mock.MagicMock()
@@ -1208,6 +1237,7 @@ def test_list_project_item_content_urls_returns_empty_set_when_no_items() -> Non
     assert urls == set()
 
 
+@pytest.mark.ai_generated
 def test_add_to_project_skips_items_already_in_project(
     monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path
 ) -> None:
@@ -1319,6 +1349,7 @@ _SKIP_INTEGRATION = pytest.mark.skipif(
 
 
 @_SKIP_INTEGRATION
+@pytest.mark.ai_generated
 def test_add_to_project_integration(tmp_path: pathlib.Path) -> None:
     """
     Integration test: adds a known closed PR to the test project, verifies it

@@ -5,9 +5,9 @@ import pathlib
 import my_work_history
 import pytest
 
-pytestmark = pytest.mark.ai_generated
 
 
+@pytest.mark.ai_generated
 def test_dump_info_for_date_rest(tmp_path: pathlib.Path) -> None:
     version = importlib.metadata.distribution("my_work_history").version
     major, minor, _ = version.split(".")

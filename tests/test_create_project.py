@@ -4,9 +4,9 @@ import my_work_history
 import pytest
 from my_work_history._create_project import _create_date_field, _get_owner_node_id
 
-pytestmark = pytest.mark.ai_generated
 
 
+@pytest.mark.ai_generated
 def test_create_project_page_raises_without_token(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("GITHUB_TOKEN", raising=False)
 
@@ -14,6 +14,7 @@ def test_create_project_page_raises_without_token(monkeypatch: pytest.MonkeyPatc
         my_work_history.create_project_page(owner="some-owner", title="Some Project")
 
 
+@pytest.mark.ai_generated
 def test_get_owner_node_id_raises_for_unknown_owner() -> None:
     headers = {"Authorization": "token fake-token"}
 
@@ -25,6 +26,7 @@ def test_get_owner_node_id_raises_for_unknown_owner() -> None:
             _get_owner_node_id(owner="nonexistent-owner-xyz", headers=headers)
 
 
+@pytest.mark.ai_generated
 def test_create_project_page_returns_id_and_url(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("GITHUB_TOKEN", "fake-token")
 
@@ -70,6 +72,7 @@ def test_create_project_page_returns_id_and_url(monkeypatch: pytest.MonkeyPatch)
     assert created_field_names == ["Start date", "End date"]
 
 
+@pytest.mark.ai_generated
 def test_create_project_page_returns_empty_on_rate_limit(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("GITHUB_TOKEN", "fake-token")
 
@@ -90,6 +93,7 @@ def test_create_project_page_returns_empty_on_rate_limit(monkeypatch: pytest.Mon
     assert result == {}
 
 
+@pytest.mark.ai_generated
 def test_create_date_field_raises_on_api_error() -> None:
     headers = {"Authorization": "token fake-token"}
 

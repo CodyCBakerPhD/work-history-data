@@ -2,9 +2,9 @@ import pytest
 
 import my_work_history
 
-pytestmark = pytest.mark.ai_generated
 
 
+@pytest.mark.ai_generated
 def test_fetch_info_rest() -> None:
     test_info, _ = my_work_history.fetch_info_for_date(
         info_type="issues_opened",
@@ -124,6 +124,7 @@ def test_fetch_info_rest() -> None:
     assert test_info == expected_info
 
 
+@pytest.mark.ai_generated
 def test_fetch_info_graphql() -> None:
     test_info, _ = my_work_history.fetch_info_for_date(
         info_type="issues_opened",
