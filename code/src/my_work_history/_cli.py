@@ -175,13 +175,13 @@ def _mywork_update_dates_cli(project_url: str, end_date_placeholder_days: int) -
 )
 @rich_click.option(
     "--status",
-    type=rich_click.Choice(["Done"], case_sensitive=True),
+    type=rich_click.Choice(["DONE"], case_sensitive=True),
     required=True,
-    help="The current status of items to transition. Currently only 'Done' is supported.",
+    help="The current status of items to transition. Currently only 'DONE' is supported.",
 )
 def _mywork_transition_cli(project_url: str, status: str) -> None:
     try:
-        if status == "Done":
+        if status == "DONE":
             move_done_to_history(project_url=project_url)
     except (ValueError, RuntimeError) as e:
         rich_click.echo(rich_click.style(str(e), fg="red"))
