@@ -17,7 +17,9 @@ def add_to_project(
     """
     Add all unique URLs from the derivatives directory to a GitHub Project (v2).
 
-    For each item:
+    Items that are already present in the project are automatically skipped.
+
+    For each new item:
     - If ``status`` is provided, all items are assigned that status value.
     - Otherwise, the status is derived from the item type and state:
       - If the Issue or PR is closed, it is given the 'Done' status.
@@ -63,7 +65,24 @@ def add_to_project(
         project_url=project_url, headers=headers
     )
 
-    for url in tqdm.tqdm(iterable=all_urls, desc="Adding items to project", unit="items", dynamic_ncols=True):
+    # Parse owner type, login, and number from URL
+    parts = project_url.rstrip("/").split("/")
+    owner_type = parts[3]
+    owner_login = parts[4]
+    project_number = int(parts[6])
+
+    # Fetch existing project item URLs to skip items already present in the project
+    existing_urls = _list_project_item_content_urls(
+        owner_type=owner_type,
+        owner_login=owner_login,
+        project_number=project_number,
+        headers=headers,
+    )
+
+    # Exclude items already in the project
+    new_urls = [url for url in all_urls if url not in existing_urls]
+
+    for url in tqdm.tqdm(iterable=new_urls, desc="Adding items to project", unit="items", dynamic_ncols=True):
         # Determine the item type, state, and dates from the URL
         item_info = _get_item_info(url=url, headers=headers)
         if item_info is None:
@@ -625,6 +644,101 @@ def update_project_item_dates(
                 date=end_date,
                 headers=headers,
             )
+
+
+def _list_project_item_content_urls(
+    owner_type: str,
+    owner_login: str,
+    project_number: int,
+    headers: dict[str, str],
+) -> set[str]:
+    """
+    Return the set of content URLs for all items already in the project.
+
+    Parameters
+    ----------
+    owner_type : str
+        Either ``'users'`` or ``'orgs'``.
+    owner_login : str
+        The GitHub login of the project owner.
+    project_number : int
+        The number of the GitHub Project v2.
+    headers : dict[str, str]
+        HTTP headers including the Authorization token.
+
+    Returns
+    -------
+    set[str]
+        A set of content URLs (PR or Issue URLs) for all items currently in the project.
+    """
+    if owner_type == "users":
+        query = """
+query GetItemUrls($login: String!, $number: Int!, $after: String) {
+    user(login: $login) {
+        projectV2(number: $number) {
+            items(first: 100, after: $after) {
+                nodes {
+                    content {
+                        ... on PullRequest { url }
+                        ... on Issue { url }
+                    }
+                }
+                pageInfo { hasNextPage endCursor }
+            }
+        }
+    }
+}
+"""
+        data_path = ["data", "user", "projectV2", "items"]
+    else:
+        query = """
+query GetItemUrls($login: String!, $number: Int!, $after: String) {
+    organization(login: $login) {
+        projectV2(number: $number) {
+            items(first: 100, after: $after) {
+                nodes {
+                    content {
+                        ... on PullRequest { url }
+                        ... on Issue { url }
+                    }
+                }
+                pageInfo { hasNextPage endCursor }
+            }
+        }
+    }
+}
+"""
+        data_path = ["data", "organization", "projectV2", "items"]
+
+    existing_urls: set[str] = set()
+    after_cursor = None
+
+    while True:
+        variables = {"login": owner_login, "number": project_number, "after": after_cursor}
+        response = requests.post(
+            url="https://api.github.com/graphql",
+            json={"query": query, "variables": variables},
+            headers=headers,
+        )
+        result = _check_graphql_response(
+            response=response,
+            context=f"Failed to list project item URLs for project {project_number}.",
+        )
+        items_data = result
+        for key in data_path:
+            items_data = items_data[key]
+
+        for node in items_data["nodes"]:
+            content = node.get("content")
+            if content and "url" in content:
+                existing_urls.add(content["url"])
+
+        page_info = items_data["pageInfo"]
+        if not page_info["hasNextPage"]:
+            break
+        after_cursor = page_info["endCursor"]
+
+    return existing_urls
 
 
 def _list_project_items_with_dates(
