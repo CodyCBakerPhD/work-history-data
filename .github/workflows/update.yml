@@ -43,7 +43,7 @@ jobs:
           cd work-history-data
           mywork minify --directory ./derivatives/version-0+1/username-codycbakerphd/request-graphql
           mywork populate --directory . --project-url https://github.com/users/CodyCBakerPhD/projects/4
-          mywork populate --directory . --project-url https://github.com/users/CodyCBakerPhD/projects/6 --status Unseen
+          mywork populate --directory . --project-url https://github.com/orgs/con/projects/6 --status Incoming
 
 
       - name: Upload minification
