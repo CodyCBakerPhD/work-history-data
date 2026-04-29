@@ -161,21 +161,28 @@ def _mywork_update_dates_cli(project_url: str, end_date_placeholder_days: int) -
         raise SystemExit(1)
 
 
-# mywork archive
-@_mywork_cli.command(name="archive")
+# mywork transition
+@_mywork_cli.command(name="transition")
 @rich_click.option(
     "--project-url",
     type=str,
     required=True,
     help=(
-        "The URL of the GitHub Project v2 in which to move all 'Done' items to 'History'. "
+        "The URL of the GitHub Project v2 whose items should be transitioned. "
         "E.g., `https://github.com/users/username/projects/1` "
         "or `https://github.com/orgs/orgname/projects/1`."
     ),
 )
-def _mywork_archive_cli(project_url: str) -> None:
+@rich_click.option(
+    "--status",
+    type=rich_click.Choice(["Done"], case_sensitive=True),
+    required=True,
+    help="The current status of items to transition. Currently only 'Done' is supported.",
+)
+def _mywork_transition_cli(project_url: str, status: str) -> None:
     try:
-        move_done_to_history(project_url=project_url)
+        if status == "Done":
+            move_done_to_history(project_url=project_url)
     except (ValueError, RuntimeError) as e:
         rich_click.echo(rich_click.style(str(e), fg="red"))
         raise SystemExit(1)
