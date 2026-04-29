@@ -161,8 +161,8 @@ def _mywork_update_dates_cli(project_url: str, end_date_placeholder_days: int) -
         raise SystemExit(1)
 
 
-# mywork move-done-to-history
-@_mywork_cli.command(name="move-done-to-history")
+# mywork archive
+@_mywork_cli.command(name="archive")
 @rich_click.option(
     "--project-url",
     type=str,
@@ -173,7 +173,7 @@ def _mywork_update_dates_cli(project_url: str, end_date_placeholder_days: int) -
         "or `https://github.com/orgs/orgname/projects/1`."
     ),
 )
-def _mywork_move_done_to_history_cli(project_url: str) -> None:
+def _mywork_archive_cli(project_url: str) -> None:
     try:
         move_done_to_history(project_url=project_url)
     except (ValueError, RuntimeError) as e:
