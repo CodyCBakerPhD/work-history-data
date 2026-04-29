@@ -1030,7 +1030,7 @@ def move_done_to_history(project_url: str) -> None:
     done_items = [item for item in all_items if item["status_option_id"] == done_option_id]
 
     for item in tqdm.tqdm(
-        iterable=done_items, desc="Moving items from Done to History", unit="items", dynamic_ncols=True
+        iterable=done_items, desc="Moving items from DONE to History", unit="items", dynamic_ncols=True
     ):
         _set_item_status(
             project_id=project_id,
