@@ -843,3 +843,200 @@ query GetItems($login: String!, $number: Int!, $after: String) {
 
     return all_items
 
+
+def _list_project_items_with_status(
+    owner_type: str,
+    owner_login: str,
+    project_number: int,
+    status_field_id: str,
+    headers: dict[str, str],
+) -> list[dict]:
+    """
+    Return all project items together with their current status option ID.
+
+    Parameters
+    ----------
+    owner_type : str
+        Either ``'users'`` or ``'orgs'``.
+    owner_login : str
+        The GitHub login of the project owner.
+    project_number : int
+        The number of the GitHub Project v2.
+    status_field_id : str
+        The global node ID of the Status field.
+    headers : dict[str, str]
+        HTTP headers including the Authorization token.
+
+    Returns
+    -------
+    list[dict]
+        A list of dicts, each with keys ``id`` and ``status_option_id``.
+        Items whose status field value cannot be determined have ``status_option_id`` set to ``None``.
+    """
+    if owner_type == "users":
+        query = """
+query GetItemsWithStatus($login: String!, $number: Int!, $after: String) {
+    user(login: $login) {
+        projectV2(number: $number) {
+            items(first: 100, after: $after) {
+                nodes {
+                    id
+                    fieldValues(first: 20) {
+                        nodes {
+                            ... on ProjectV2ItemFieldSingleSelectValue {
+                                optionId
+                                field {
+                                    ... on ProjectV2SingleSelectField {
+                                        id
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                pageInfo { hasNextPage endCursor }
+            }
+        }
+    }
+}
+"""
+        data_path = ["data", "user", "projectV2", "items"]
+    else:
+        query = """
+query GetItemsWithStatus($login: String!, $number: Int!, $after: String) {
+    organization(login: $login) {
+        projectV2(number: $number) {
+            items(first: 100, after: $after) {
+                nodes {
+                    id
+                    fieldValues(first: 20) {
+                        nodes {
+                            ... on ProjectV2ItemFieldSingleSelectValue {
+                                optionId
+                                field {
+                                    ... on ProjectV2SingleSelectField {
+                                        id
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                pageInfo { hasNextPage endCursor }
+            }
+        }
+    }
+}
+"""
+        data_path = ["data", "organization", "projectV2", "items"]
+
+    all_items = []
+    after_cursor = None
+
+    while True:
+        variables = {"login": owner_login, "number": project_number, "after": after_cursor}
+        response = requests.post(
+            url="https://api.github.com/graphql",
+            json={"query": query, "variables": variables},
+            headers=headers,
+        )
+        result = _check_graphql_response(
+            response=response,
+            context=f"Failed to list project items with status for project {project_number}.",
+        )
+        items_data = result
+        for key in data_path:
+            items_data = items_data[key]
+
+        for node in items_data["nodes"]:
+            item_id = node["id"]
+            status_option_id = None
+            for field_value in node.get("fieldValues", {}).get("nodes", []):
+                if not field_value:
+                    continue
+                field = field_value.get("field", {})
+                if field and field.get("id") == status_field_id:
+                    status_option_id = field_value.get("optionId")
+                    break
+            all_items.append({"id": item_id, "status_option_id": status_option_id})
+
+        page_info = items_data["pageInfo"]
+        if not page_info["hasNextPage"]:
+            break
+        after_cursor = page_info["endCursor"]
+
+    return all_items
+
+
+def move_done_to_history(project_url: str) -> None:
+    """
+    Move all items with ``Status=Done`` to ``Status=History`` in a GitHub Project (v2).
+
+    Parameters
+    ----------
+    project_url : str
+        The URL of the GitHub Project v2,
+        e.g., ``https://github.com/users/username/projects/1``
+        or ``https://github.com/orgs/orgname/projects/1``.
+
+    Raises
+    ------
+    ValueError
+        If the ``GITHUB_TOKEN`` environment variable is not set, or if the project
+        does not have a ``'Done'`` or ``'History'`` status option.
+    """
+    github_token = os.getenv("GITHUB_TOKEN")
+    if github_token is None:
+        message = "\nPlease set the `GITHUB_TOKEN` environment variable with a valid GitHub Personal Access Token!\n\n"
+        raise ValueError(message)
+
+    headers = {"Authorization": f"token {github_token}"}
+
+    project_id, status_field_id, status_options, _start_date_field_id, _end_date_field_id = _get_project_info(
+        project_url=project_url, headers=headers
+    )
+
+    done_option_id = status_options.get("DONE")
+    if done_option_id is None:
+        message = (
+            f"Status option 'DONE' not found in project `{project_url}`. "
+            f"Available options: {list(status_options.keys())}."
+        )
+        raise ValueError(message)
+
+    history_option_id = status_options.get("History")
+    if history_option_id is None:
+        message = (
+            f"Status option 'History' not found in project `{project_url}`. "
+            f"Available options: {list(status_options.keys())}."
+        )
+        raise ValueError(message)
+
+    # Parse owner type, login, and number from URL
+    parts = project_url.rstrip("/").split("/")
+    owner_type = parts[3]
+    owner_login = parts[4]
+    project_number = int(parts[6])
+
+    # Fetch all items with their current status
+    all_items = _list_project_items_with_status(
+        owner_type=owner_type,
+        owner_login=owner_login,
+        project_number=project_number,
+        status_field_id=status_field_id,
+        headers=headers,
+    )
+
+    done_items = [item for item in all_items if item["status_option_id"] == done_option_id]
+
+    for item in tqdm.tqdm(
+        iterable=done_items, desc="Moving items from DONE to History", unit="items", dynamic_ncols=True
+    ):
+        _set_item_status(
+            project_id=project_id,
+            item_id=item["id"],
+            field_id=status_field_id,
+            option_id=history_option_id,
+            headers=headers,
+        )
+
