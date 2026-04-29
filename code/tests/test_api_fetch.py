@@ -1,4 +1,8 @@
+import pytest
+
 import my_work_history
+
+pytestmark = pytest.mark.ai_generated
 
 
 def test_fetch_info_rest() -> None:

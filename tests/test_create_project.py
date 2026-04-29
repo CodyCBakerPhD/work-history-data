@@ -4,6 +4,8 @@ import my_work_history
 import pytest
 from my_work_history._create_project import _create_date_field, _get_owner_node_id
 
+pytestmark = pytest.mark.ai_generated
+
 
 def test_create_project_page_raises_without_token(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("GITHUB_TOKEN", raising=False)

@@ -3,6 +3,9 @@ import json
 import pathlib
 
 import my_work_history
+import pytest
+
+pytestmark = pytest.mark.ai_generated
 
 
 def test_dump_info_for_date_graphql(tmp_path: pathlib.Path) -> None:

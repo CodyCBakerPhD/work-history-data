@@ -22,6 +22,8 @@ from my_work_history._add_to_project import (
     update_project_item_dates,
 )
 
+pytestmark = pytest.mark.ai_generated
+
 # ---------------------------------------------------------------------------
 # Helpers shared across integration tests
 # ---------------------------------------------------------------------------
