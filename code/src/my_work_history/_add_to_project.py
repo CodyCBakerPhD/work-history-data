@@ -871,7 +871,7 @@ def _list_project_items_with_status(
     -------
     list[dict]
         A list of dicts, each with keys ``id`` and ``status_option_id``.
-        Items whose status field value cannot be determined are excluded.
+        Items whose status field value cannot be determined have ``status_option_id`` set to ``None``.
     """
     if owner_type == "users":
         query = """
