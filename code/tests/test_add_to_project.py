@@ -1410,7 +1410,7 @@ def test_move_done_to_history_raises_without_token(monkeypatch: pytest.MonkeyPat
 
 @pytest.mark.ai_generated
 def test_move_done_to_history_raises_when_done_option_missing(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Raises ValueError when the project has no 'Done' status option."""
+    """Raises ValueError when the project has no 'DONE' status option."""
     monkeypatch.setenv("GITHUB_TOKEN", "fake-token")
 
     project_info_response = unittest.mock.MagicMock()
@@ -1435,7 +1435,7 @@ def test_move_done_to_history_raises_when_done_option_missing(monkeypatch: pytes
     }
 
     with unittest.mock.patch("requests.post", return_value=project_info_response):
-        with pytest.raises(ValueError, match="'Done' not found"):
+        with pytest.raises(ValueError, match="'DONE' not found"):
             move_done_to_history(project_url="https://github.com/users/testuser/projects/1")
 
 
@@ -1456,7 +1456,7 @@ def test_move_done_to_history_raises_when_history_option_missing(monkeypatch: py
                             {
                                 "id": "PVTSSF_status",
                                 "name": "Status",
-                                "options": [{"id": "opt_done", "name": "Done"}],
+                                "options": [{"id": "opt_done", "name": "DONE"}],
                             }
                         ]
                     },
@@ -1488,7 +1488,7 @@ def test_move_done_to_history_moves_only_done_items(monkeypatch: pytest.MonkeyPa
                                 "id": "PVTSSF_status",
                                 "name": "Status",
                                 "options": [
-                                    {"id": "opt_done", "name": "Done"},
+                                    {"id": "opt_done", "name": "DONE"},
                                     {"id": "opt_history", "name": "History"},
                                     {"id": "opt_progress", "name": "In Progress"},
                                 ],
@@ -1576,7 +1576,7 @@ def test_move_done_to_history_moves_only_done_items(monkeypatch: pytest.MonkeyPa
 
 @pytest.mark.ai_generated
 def test_move_done_to_history_no_done_items(monkeypatch: pytest.MonkeyPatch) -> None:
-    """move_done_to_history makes no set_status calls when there are no Done items."""
+    """move_done_to_history makes no set_status calls when there are no DONE items."""
     monkeypatch.setenv("GITHUB_TOKEN", "fake-token")
 
     project_info_response = unittest.mock.MagicMock()
@@ -1592,7 +1592,7 @@ def test_move_done_to_history_no_done_items(monkeypatch: pytest.MonkeyPatch) -> 
                                 "id": "PVTSSF_status",
                                 "name": "Status",
                                 "options": [
-                                    {"id": "opt_done", "name": "Done"},
+                                    {"id": "opt_done", "name": "DONE"},
                                     {"id": "opt_history", "name": "History"},
                                 ],
                             }

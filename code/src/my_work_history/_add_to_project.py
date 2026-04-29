@@ -996,10 +996,10 @@ def move_done_to_history(project_url: str) -> None:
         project_url=project_url, headers=headers
     )
 
-    done_option_id = status_options.get("Done")
+    done_option_id = status_options.get("DONE")
     if done_option_id is None:
         message = (
-            f"Status option 'Done' not found in project `{project_url}`. "
+            f"Status option 'DONE' not found in project `{project_url}`. "
             f"Available options: {list(status_options.keys())}."
         )
         raise ValueError(message)
