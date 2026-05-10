@@ -27,10 +27,9 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-          cd work-history-data
-          pip install -e .
+          pip install historia
 
-          mywork update --directory ./derivatives --recency 2 --username codycbakerphd --request graphql
+          historia data github update --directory ./derivatives --recency 2 --username codycbakerphd
 
       - name: Upload content
         run: |

@@ -1,16 +1,7 @@
-# My work history
+# Work history data
 
-A raw API dump from GitHub about all my activity. To be used to create a dashboard automatically.
-
-
-
-### Run from CLI
-
-```text
-pip install -e .
-
-mywork update --directory ./derivatives --recency [number of days] --username [GitHub username]
-```
+A raw API dump from GitHub about all my activity.
+To be used in GitHub project dashboards.
 
 
 
