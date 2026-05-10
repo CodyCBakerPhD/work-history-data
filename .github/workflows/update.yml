@@ -31,8 +31,7 @@ jobs:
 
           python -m pip install -r "$REPO_DIR/requirements.txt"
 
-          cd work-history-data
-          historia data github update --directory ./data --username codycbakerphd --recency 2 
+          historia data github update --directory ./work-history-data/history --username codycbakerphd --recency 2 
 
       - name: Upload content
         run: |
@@ -41,10 +40,7 @@ jobs:
           git -C $REPO_DIR push
 
       - name: Run minification
-        run: |
-          cd work-history-data
-          historia minify --directory ./data
-          historia populate --directory . --project-url https://github.com/users/CodyCBakerPhD/projects/4
+        run: historia minify --directory ./work-history-data/history
 
 
       - name: Upload minification
@@ -59,8 +55,8 @@ jobs:
       - name: Push to GitHub project
         run: |
           cd work-history-data
-          historia populate --directory . --project-url https://github.com/users/CodyCBakerPhD/projects/4
-          historia populate --directory . --project-url https://github.com/orgs/con/projects/6
+          historia populate --directory ./work-history-data/history --project-url https://github.com/users/CodyCBakerPhD/projects/4
+          historia populate --directory ./work-history-data/history --project-url https://github.com/orgs/con/projects/6
 
   NotifyOnFailure:
     runs-on: ubuntu-latest
