@@ -26,12 +26,13 @@ jobs:
       - name: Prepare repository
         run: |
           if [ -d "$REPO_DIR/.git" ]; then
-            git -C "$REPO_DIR" fetch origin main
+            git -C "$REPO_DIR" fetch https://x-access-token:${{ secrets._GITHUB_API_KEY }}@github.com/codycbakerphd/$REPO_DIR.git main:refs/remotes/origin/main
             git -C "$REPO_DIR" checkout main
             git -C "$REPO_DIR" reset --hard origin/main
             git -C "$REPO_DIR" clean -fd
           else
-            git clone -b main https://github.com/codycbakerphd/$REPO_DIR.git
+            git clone -b main https://x-access-token:${{ secrets._GITHUB_API_KEY }}@github.com/codycbakerphd/$REPO_DIR.git
+            git -C "$REPO_DIR" remote set-url origin https://github.com/codycbakerphd/$REPO_DIR.git
           fi
 
       - name: Setup Python
@@ -70,6 +71,7 @@ jobs:
         run: |
           git -C $REPO_DIR push https://x-access-token:${{ secrets._GITHUB_API_KEY }}@github.com/codycbakerphd/$REPO_DIR.git --delete min || true  # || true in case branch doesn't exist yet
 
+          git -C $REPO_DIR checkout main
           git -C $REPO_DIR branch -D min 2>/dev/null || true
           git -C $REPO_DIR checkout -b min
           git -C $REPO_DIR add .
