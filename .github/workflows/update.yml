@@ -32,8 +32,8 @@ jobs:
             git -C "$REPO_DIR" clean -fd
           else
             git clone -b main https://x-access-token:${{ secrets._GITHUB_API_KEY }}@github.com/codycbakerphd/$REPO_DIR.git
-            git -C "$REPO_DIR" remote set-url origin https://github.com/codycbakerphd/$REPO_DIR.git
           fi
+          git -C "$REPO_DIR" remote set-url origin https://github.com/codycbakerphd/$REPO_DIR.git
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -72,7 +72,7 @@ jobs:
           git -C $REPO_DIR push https://x-access-token:${{ secrets._GITHUB_API_KEY }}@github.com/codycbakerphd/$REPO_DIR.git --delete min || true  # || true in case branch doesn't exist yet
 
           git -C $REPO_DIR checkout main
-          git -C $REPO_DIR branch -D min 2>/dev/null || true
+          git -C $REPO_DIR branch -D min || true
           git -C $REPO_DIR checkout -b min
           git -C $REPO_DIR add .
           git -C $REPO_DIR commit --message "update min" || true  # || true in case of no changes
