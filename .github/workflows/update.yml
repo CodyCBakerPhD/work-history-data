@@ -19,7 +19,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ env.REPO_DIR }}
-          key: repo-${{ runner.os }}-${{ github.repository }}-v1
+          key: repo-${{ runner.os }}-${{ github.repository }}-${{ hashFiles('.github/workflows/update.yml') }}
           restore-keys: |
             repo-${{ runner.os }}-${{ github.repository }}-
 
@@ -71,7 +71,7 @@ jobs:
         run: |
           git -C $REPO_DIR push https://x-access-token:${{ secrets._GITHUB_API_KEY }}@github.com/codycbakerphd/$REPO_DIR.git --delete min || true  # || true in case branch doesn't exist yet
 
-          git -C $REPO_DIR checkout main
+          git -C $REPO_DIR checkout -B main origin/main
           git -C $REPO_DIR branch -D min || true
           git -C $REPO_DIR checkout -b min
           git -C $REPO_DIR add .
