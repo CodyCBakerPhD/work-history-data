@@ -20,8 +20,7 @@ jobs:
         with:
           path: ${{ env.REPO_DIR }}
           key: repo-${{ runner.os }}-${{ github.repository }}-${{ hashFiles('.github/workflows/update.yml') }}
-          restore-keys: |
-            repo-${{ runner.os }}-${{ github.repository }}-
+          restore-keys: repo-${{ runner.os }}-${{ github.repository }}-
 
       - name: Prepare repository
         run: |
