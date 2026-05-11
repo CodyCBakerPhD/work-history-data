@@ -61,7 +61,7 @@ jobs:
 
           historia data github update --directory ./work-history-data/history --username "$USERNAME" --recency 2
 
-      - name: Upload content
+      - name: Upload new content
         run: |
           git -C "$REPO_DIR" add .
           git -C "$REPO_DIR" commit --message "update" || true  # || true in case of no changes
@@ -70,8 +70,7 @@ jobs:
       - name: Run minification
         run: historia minify --directory ./work-history-data/history
 
-
-      - name: Upload minification
+      - name: Upload minification to ephemeral branch
         run: |
           git -C "$REPO_DIR" push https://x-access-token:${{ secrets._GITHUB_API_KEY }}@github.com/$REPO_FULL_NAME.git --delete dist || true  # || true in case branch doesn't exist yet
 
