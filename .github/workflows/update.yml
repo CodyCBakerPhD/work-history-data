@@ -8,8 +8,8 @@ on:
 env:
   GITHUB_TOKEN: ${{ secrets._GITHUB_API_KEY }}
   REPO_OWNER: ${{ github.repository_owner }}
-  HISTORIA_USERNAME: ${{ github.repository_owner }}
   REPO_OWNER_TYPE: ${{ github.event.repository.owner.type }}
+  HISTORIA_USERNAME: ${{ github.repository_owner }}
   REPO_NAME: ${{ github.event.repository.name }}
   REPO_FULL_NAME: ${{ github.repository }}
   PYTHON_VERSION: "3.13"
