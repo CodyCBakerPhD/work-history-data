@@ -60,24 +60,17 @@ jobs:
         id: pip-cache
         uses: actions/cache@v4
         with:
-          path: |
-            ~/.cache/pip
-            .venv
+          path: ~/.cache/pip
           key: pip-${{ runner.os }}-py${{ env.PYTHON_VERSION }}-${{ hashFiles('.github/workflows/update.yml') }}
           restore-keys: pip-${{ runner.os }}-py${{ env.PYTHON_VERSION }}-
 
       - name: Install historia
         if: steps.pip-cache.outputs.cache-hit != 'true'
-        run: |
-          python -m venv .venv
-          . .venv/bin/activate
-          python -m pip install "$HISTORIA_SPEC"
-
-      - name: Add virtualenv to PATH
-        run: echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+        run: python -m pip install "$HISTORIA_SPEC"
 
       - name: Run update
         run: |
+          command -v historia > /dev/null || python -m pip install "$HISTORIA_SPEC"
           historia data github update --directory ./work-history-data/history --username "$USERNAME" --recency 2
 
       - name: Upload new content
