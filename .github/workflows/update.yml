@@ -12,6 +12,7 @@ env:
   REPO_OWNER_TYPE: ${{ github.event.repository.owner.type }}
   REPO_NAME: ${{ github.event.repository.name }}
   REPO_FULL_NAME: ${{ github.repository }}
+  PYTHON_VERSION: "3.13"
   OWNER_PROJECT_NUMBER: 4
   HISTORIA_SPEC: historia @ git+https://github.com/CodyCBakerPhD/historia.git@59c811387b5e024395be646cdf1863e6408746ea
 
@@ -42,14 +43,14 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: 3.13
+          python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Restore pip cache
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
-          key: pip-${{ runner.os }}-py3.13-${{ hashFiles('.github/workflows/update.yml') }}
-          restore-keys: pip-${{ runner.os }}-py3.13-
+          key: pip-${{ runner.os }}-py${{ env.PYTHON_VERSION }}-${{ hashFiles('.github/workflows/update.yml') }}
+          restore-keys: pip-${{ runner.os }}-py${{ env.PYTHON_VERSION }}-
 
       - name: Run update
         run: |
@@ -72,14 +73,14 @@ jobs:
 
       - name: Upload minification
         run: |
-          git -C $REPO_NAME push https://x-access-token:${{ secrets._GITHUB_API_KEY }}@github.com/$REPO_FULL_NAME.git --delete min || true  # || true in case branch doesn't exist yet
+          git -C $REPO_NAME push https://x-access-token:${{ secrets._GITHUB_API_KEY }}@github.com/$REPO_FULL_NAME.git --delete dist || true  # || true in case branch doesn't exist yet
 
           git -C $REPO_NAME checkout main
-          git -C $REPO_NAME branch -D min || true
-          git -C $REPO_NAME checkout -b min
+          git -C $REPO_NAME branch -D dist || true
+          git -C $REPO_NAME checkout -b dist
           git -C $REPO_NAME add .
-          git -C $REPO_NAME commit --message "update min" || true  # || true in case of no changes
-          git -C $REPO_NAME push https://x-access-token:${{ secrets._GITHUB_API_KEY }}@github.com/$REPO_FULL_NAME.git HEAD:min
+          git -C $REPO_NAME commit --message "update dist" || true  # || true in case of no changes
+          git -C $REPO_NAME push https://x-access-token:${{ secrets._GITHUB_API_KEY }}@github.com/$REPO_FULL_NAME.git HEAD:dist
 
       - name: Push to GitHub project
         run: |
