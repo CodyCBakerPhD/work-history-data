@@ -38,14 +38,12 @@ jobs:
           git -C "$REPO_DIR" checkout main
           git -C "$REPO_DIR" reset --hard origin/main
           git -C "$REPO_DIR" clean -fd
+          git -C "$REPO_DIR" remote set-url origin https://github.com/$REPO_FULL_NAME.git
 
       - name: Prepare repository from remote
         if: steps.repo-cache.outputs.cache-hit != 'true'
         run: |
           git clone -b main "https://github.com/$REPO_FULL_NAME.git" "$REPO_DIR"
-
-      - name: Set repository remote URL
-        run: git -C "$REPO_DIR" remote set-url origin https://github.com/$REPO_FULL_NAME.git
 
       - name: Configure git identity
         run: |
@@ -61,19 +59,21 @@ jobs:
         id: pip-cache
         uses: actions/cache@v4
         with:
-          path: ~/.cache/pip
+          path: |
+            ~/.cache/pip
+            ~/.local
           key: pip-${{ runner.os }}-py${{ env.PYTHON_VERSION }}-${{ hashFiles('.github/workflows/update.yml') }}
           restore-keys: pip-${{ runner.os }}-py${{ env.PYTHON_VERSION }}-
 
       - name: Install historia
         if: steps.pip-cache.outputs.cache-hit != 'true'
-        run: python -m pip install "$HISTORIA_SPEC"
+        run: python -m pip install --user "$HISTORIA_SPEC"
+
+      - name: Add user-local bin to PATH
+        run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - name: Run update
-        run: |
-          # pip cache stores downloads/wheels, not installed CLI tools on ephemeral runners
-          command -v historia > /dev/null || python -m pip install "$HISTORIA_SPEC"
-          historia data github update --directory ./work-history-data/history --username "$USERNAME" --recency 2
+        run: historia data github update --directory ./work-history-data/history --username "$USERNAME" --recency 2
 
       - name: Upload new content
         run: |
