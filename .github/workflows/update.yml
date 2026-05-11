@@ -36,7 +36,7 @@ jobs:
             git -C "$REPO_DIR" reset --hard origin/main
             git -C "$REPO_DIR" clean -fd
           else
-            git clone -b main https://github.com/$REPO_FULL_NAME.git
+            git clone -b main "https://github.com/$REPO_FULL_NAME.git" "$REPO_DIR"
           fi
           git -C "$REPO_DIR" remote set-url origin https://github.com/$REPO_FULL_NAME.git
 
