@@ -85,8 +85,8 @@ jobs:
 
       - name: Push to GitHub project
         run: |
-          OWNER_PROJECTS_BASE="https://github.com/$REPO_OWNER_TYPE/$REPO_OWNER/projects"
-          historia populate --directory ./work-history-data/history --project-url "$OWNER_PROJECTS_BASE/$PROJECT_NUMBER"
+          OWNER_PROJECT_URL="https://github.com/$REPO_OWNER_TYPE/$REPO_OWNER/projects/$PROJECT_NUMBER"
+          historia populate --directory ./work-history-data/history --project-url "$OWNER_PROJECT_URL"
           historia populate --directory ./work-history-data/history --project-url https://github.com/orgs/con/projects/6
 
   NotifyOnFailure:
@@ -103,4 +103,4 @@ jobs:
           subject: "Work history data update failed"
           to: cody.c.baker.phd@gmail.com
           from: work-history-data
-          body: "Please check the latest run of my work history update: ${{ github.server_url }}/${{ github.repository }}/actions/workflows/update.yml"
+          body: "Please check the latest run of my work history update: https://github.com/codycbakerphd/work-history-data/actions/workflows/update.yml"
