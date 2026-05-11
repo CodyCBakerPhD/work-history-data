@@ -8,6 +8,7 @@ on:
 env:
   GITHUB_TOKEN: ${{ secrets._GITHUB_API_KEY }}
   REPO_OWNER: ${{ github.repository_owner }}
+  REPO_OWNER_TYPE: ${{ github.event.repository.owner.type }}
   REPO_NAME: ${{ github.event.repository.name }}
   REPO_FULL_NAME: ${{ github.repository }}
   OWNER_PROJECT_NUMBER: 4
@@ -83,11 +84,11 @@ jobs:
         run: |
           cd work-history-data
           OWNER_PROJECTS_BASE="https://github.com/users/$REPO_OWNER/projects"
-          if [ "${{ github.event.repository.owner.type }}" = "Organization" ]; then
+          if [ "$REPO_OWNER_TYPE" = "Organization" ]; then
             OWNER_PROJECTS_BASE="https://github.com/orgs/$REPO_OWNER/projects"
           fi
-          historia populate --directory ./work-history-data/history --project-url "$OWNER_PROJECTS_BASE/$OWNER_PROJECT_NUMBER"
-          historia populate --directory ./work-history-data/history --project-url https://github.com/orgs/con/projects/6
+          historia populate --directory ./history --project-url "$OWNER_PROJECTS_BASE/$OWNER_PROJECT_NUMBER"
+          historia populate --directory ./history --project-url https://github.com/orgs/con/projects/6
 
   NotifyOnFailure:
     runs-on: ubuntu-latest
