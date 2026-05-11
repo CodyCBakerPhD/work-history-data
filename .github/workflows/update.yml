@@ -46,11 +46,7 @@ jobs:
           git clone -b main "https://github.com/$REPO_FULL_NAME.git" "$REPO_DIR"
           git -C "$REPO_DIR" remote set-url origin https://github.com/$REPO_FULL_NAME.git
 
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-
       - name: Configure git identity
-        if: steps.repo-cache.outputs.cache-hit == 'true'
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
@@ -64,17 +60,21 @@ jobs:
         id: pip-cache
         uses: actions/cache@v4
         with:
-          path: ~/.cache/pip
+          path: |
+            ~/.cache/pip
+            .venv
           key: pip-${{ runner.os }}-py${{ env.PYTHON_VERSION }}-${{ hashFiles('.github/workflows/update.yml') }}
           restore-keys: pip-${{ runner.os }}-py${{ env.PYTHON_VERSION }}-
 
       - name: Install historia
         if: steps.pip-cache.outputs.cache-hit != 'true'
-        run: python -m pip install "$HISTORIA_SPEC"
+        run: |
+          python -m venv .venv
+          . .venv/bin/activate
+          python -m pip install "$HISTORIA_SPEC"
 
-      - name: Ensure historia is available
-        if: steps.pip-cache.outputs.cache-hit == 'true'
-        run: python -m pip show historia > /dev/null || python -m pip install "$HISTORIA_SPEC"
+      - name: Add virtualenv to PATH
+        run: echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
 
       - name: Run update
         run: |
