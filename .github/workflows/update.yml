@@ -12,6 +12,7 @@ env:
   REPO_OWNER: ${{ github.repository_owner }}
   REPO_OWNER_TYPE: ${{ github.event.repository.owner.type }}
   USERNAME: ${{ github.repository_owner }}
+  REPO_DIR: ${{ github.event.repository.name }}
   REPO_FULL_NAME: ${{ github.repository }}
   PROJECT_NUMBER: 4
 
@@ -23,13 +24,12 @@ jobs:
       - name: Restore repository cache
         uses: actions/cache@v4
         with:
-          path: ${{ github.event.repository.name }}
+          path: ${{ env.REPO_DIR }}
           key: repo-${{ runner.os }}-${{ github.repository }}-${{ hashFiles('.github/workflows/update.yml') }}
           restore-keys: repo-${{ runner.os }}-${{ github.repository }}-
 
       - name: Prepare repository
         run: |
-          REPO_DIR="${REPO_FULL_NAME#*/}"
           if [ -d "$REPO_DIR/.git" ]; then
             git -C "$REPO_DIR" fetch origin main
             git -C "$REPO_DIR" checkout main
@@ -63,7 +63,6 @@ jobs:
 
       - name: Upload content
         run: |
-          REPO_DIR="${REPO_FULL_NAME#*/}"
           git -C "$REPO_DIR" add .
           git -C "$REPO_DIR" commit --message "update" || true  # || true in case of no changes
           git -C "$REPO_DIR" push https://x-access-token:${{ secrets._GITHUB_API_KEY }}@github.com/$REPO_FULL_NAME.git HEAD:main
@@ -74,7 +73,6 @@ jobs:
 
       - name: Upload minification
         run: |
-          REPO_DIR="${REPO_FULL_NAME#*/}"
           git -C "$REPO_DIR" push https://x-access-token:${{ secrets._GITHUB_API_KEY }}@github.com/$REPO_FULL_NAME.git --delete dist || true  # || true in case branch doesn't exist yet
 
           git -C "$REPO_DIR" checkout main
