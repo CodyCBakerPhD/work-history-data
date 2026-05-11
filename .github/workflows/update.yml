@@ -38,7 +38,6 @@ jobs:
           git -C "$REPO_DIR" checkout main
           git -C "$REPO_DIR" reset --hard origin/main
           git -C "$REPO_DIR" clean -fd
-          git -C "$REPO_DIR" remote set-url origin https://github.com/$REPO_FULL_NAME.git
 
       - name: Prepare repository from remote
         if: steps.repo-cache.outputs.cache-hit != 'true'
