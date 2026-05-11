@@ -42,6 +42,9 @@ jobs:
           fi
           git -C "$REPO_DIR" remote set-url origin https://github.com/$REPO_FULL_NAME.git
 
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
@@ -56,9 +59,6 @@ jobs:
 
       - name: Run update
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-
           python -m pip install "$HISTORIA_SPEC"
 
           historia data github update --directory ./work-history-data/history --username "$USERNAME" --recency 2
