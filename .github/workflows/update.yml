@@ -38,13 +38,14 @@ jobs:
           git -C "$REPO_DIR" checkout main
           git -C "$REPO_DIR" reset --hard origin/main
           git -C "$REPO_DIR" clean -fd
-          git -C "$REPO_DIR" remote set-url origin https://github.com/$REPO_FULL_NAME.git
 
       - name: Prepare repository from remote
         if: steps.repo-cache.outputs.cache-hit != 'true'
         run: |
           git clone -b main "https://github.com/$REPO_FULL_NAME.git" "$REPO_DIR"
-          git -C "$REPO_DIR" remote set-url origin https://github.com/$REPO_FULL_NAME.git
+
+      - name: Set repository remote URL
+        run: git -C "$REPO_DIR" remote set-url origin https://github.com/$REPO_FULL_NAME.git
 
       - name: Configure git identity
         run: |
@@ -70,6 +71,7 @@ jobs:
 
       - name: Run update
         run: |
+          # pip cache stores downloads/wheels, not installed CLI tools on ephemeral runners
           command -v historia > /dev/null || python -m pip install "$HISTORIA_SPEC"
           historia data github update --directory ./work-history-data/history --username "$USERNAME" --recency 2
 
