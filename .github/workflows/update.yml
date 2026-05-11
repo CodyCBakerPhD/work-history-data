@@ -19,7 +19,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ env.REPO_DIR }}
-          key: repo-${{ runner.os }}-${{ github.repository }}-${{ github.sha }}
+          key: repo-${{ runner.os }}-${{ github.repository }}-v1
           restore-keys: |
             repo-${{ runner.os }}-${{ github.repository }}-
 
@@ -70,7 +70,7 @@ jobs:
         run: |
           git -C $REPO_DIR push https://x-access-token:${{ secrets._GITHUB_API_KEY }}@github.com/codycbakerphd/$REPO_DIR.git --delete min || true  # || true in case branch doesn't exist yet
 
-          git -C $REPO_DIR branch -D min || true
+          git -C $REPO_DIR branch -D min 2>/dev/null || true
           git -C $REPO_DIR checkout -b min
           git -C $REPO_DIR add .
           git -C $REPO_DIR commit --message "update min" || true  # || true in case of no changes
