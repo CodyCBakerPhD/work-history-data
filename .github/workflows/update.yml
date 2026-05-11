@@ -75,24 +75,26 @@ jobs:
         run: historia data github update --directory ./work-history-data/history --username "$USERNAME" --recency 2
 
       - name: Upload new content
+        working-directory: ${{ env.REPO_DIR }}
         run: |
-          git -C "$REPO_DIR" add .
-          git -C "$REPO_DIR" commit --message "update" || true  # || true in case of no changes
-          git -C "$REPO_DIR" push https://x-access-token:${{ secrets._GITHUB_API_KEY }}@github.com/$REPO_FULL_NAME.git HEAD:main
+          git add .
+          git commit --message "update" || true  # || true in case of no changes
+          git push https://x-access-token:${{ secrets._GITHUB_API_KEY }}@github.com/$REPO_FULL_NAME.git HEAD:main
 
       - name: Run minification
         run: historia minify --directory ./work-history-data/history
 
       - name: Upload minification to ephemeral branch
+        working-directory: ${{ env.REPO_DIR }}
         run: |
-          git -C "$REPO_DIR" push https://x-access-token:${{ secrets._GITHUB_API_KEY }}@github.com/$REPO_FULL_NAME.git --delete dist || true  # || true in case branch doesn't exist yet
+          git push https://x-access-token:${{ secrets._GITHUB_API_KEY }}@github.com/$REPO_FULL_NAME.git --delete dist || true  # || true in case branch doesn't exist yet
 
-          git -C "$REPO_DIR" checkout main
-          git -C "$REPO_DIR" branch -D dist || true
-          git -C "$REPO_DIR" checkout -b dist
-          git -C "$REPO_DIR" add .
-          git -C "$REPO_DIR" commit --message "update dist" || true  # || true in case of no changes
-          git -C "$REPO_DIR" push https://x-access-token:${{ secrets._GITHUB_API_KEY }}@github.com/$REPO_FULL_NAME.git HEAD:dist
+          git checkout main
+          git branch -D dist || true
+          git checkout -b dist
+          git add .
+          git commit --message "update dist" || true  # || true in case of no changes
+          git push https://x-access-token:${{ secrets._GITHUB_API_KEY }}@github.com/$REPO_FULL_NAME.git HEAD:dist
 
       - name: Push to GitHub project
         run: |
