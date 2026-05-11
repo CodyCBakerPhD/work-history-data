@@ -10,7 +10,7 @@ env:
   PYTHON_VERSION: "3.13"
   HISTORIA_SPEC: historia @ git+https://github.com/CodyCBakerPhD/historia.git@59c811387b5e024395be646cdf1863e6408746ea
   REPO_OWNER: ${{ github.repository_owner }}
-  REPO_OWNER_TYPE: users # "users" | "orgs".
+  REPO_OWNER_TYPE: ${{ fromJSON('{"Organization":"orgs","User":"users"}')[github.event.repository.owner.type] || 'users' }}
   USERNAME: ${{ github.repository_owner }}
   REPO_DIR: ${{ github.event.repository.name }}
   REPO_FULL_NAME: ${{ github.repository }}
