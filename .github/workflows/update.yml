@@ -6,51 +6,100 @@ on:
   workflow_dispatch:
 
 env:
+  # Set these
+  USERNAME: ${{ github.repository_owner }}
+  PROJECT_NUMBER: 4
+  PYTHON_VERSION: "3.13"
+  HISTORIA_SPEC: historia @ git+https://github.com/CodyCBakerPhD/historia.git@59c811387b5e024395be646cdf1863e6408746ea
+  # Let these set themselves
   GITHUB_TOKEN: ${{ secrets._GITHUB_API_KEY }}
+  REPO_OWNER: ${{ github.repository_owner }}
+  REPO_OWNER_TYPE: ${{ fromJSON('{"Organization":"orgs","User":"users"}')[github.event.repository.owner.type] }}
   REPO_DIR: ${{ github.event.repository.name }}
+  REPO_FULL_NAME: ${{ github.repository }}
 
 jobs:
   Update:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Clone
-        run: git clone -b main https://x-access-token:${{ secrets._GITHUB_API_KEY }}@github.com/codycbakerphd/$REPO_DIR.git
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - name: Restore repository cache
+        id: repo-cache
+        uses: actions/cache@v4
         with:
-          python-version: 3.13
+          path: ${{ env.REPO_DIR }}
+          key: repo-${{ runner.os }}-${{ github.repository }}-${{ hashFiles('.github/workflows/update.yml') }}
+          restore-keys: repo-${{ runner.os }}-${{ github.repository }}-
 
-      - name: Run update
+      - name: Prepare repository from cache
+        if: steps.repo-cache.outputs.cache-hit == 'true'
+        working-directory: ${{ env.REPO_DIR }}
+        run: |
+          git fetch origin main
+          git checkout main
+          git reset --hard origin/main
+          git clean -fd
+
+      - name: Prepare repository from remote
+        if: steps.repo-cache.outputs.cache-hit != 'true'
+        run: git clone -b main "https://github.com/$REPO_FULL_NAME.git" "$REPO_DIR"
+
+      - name: Configure git identity
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-          pip install historia
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
 
-          historia data github update --directory ./work-history-data/history --username codycbakerphd --recency 2 
+      - name: Restore pip cache
+        id: pip-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.local
+          key: pip-${{ runner.os }}-py${{ env.PYTHON_VERSION }}-${{ hashFiles('.github/workflows/update.yml') }}
+          restore-keys: pip-${{ runner.os }}-py${{ env.PYTHON_VERSION }}-
+
+      - name: Install historia
+        if: steps.pip-cache.outputs.cache-hit != 'true'
+        run: python -m pip install --user "$HISTORIA_SPEC"
+
+      - name: Add user-local bin to PATH
+        run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Run update
+        run: historia data github update --directory ./work-history-data/history --username "$USERNAME" --recency 2
 
       - name: Upload new content
+        working-directory: ${{ env.REPO_DIR }}
         run: |
-          git -C $REPO_DIR add .
-          git -C $REPO_DIR commit --message "update" || true  # || true in case of no changes
-          git -C $REPO_DIR push
+          git add .
+          git commit --message "update" || true  # || true in case of no changes
+          git push https://x-access-token:${{ secrets._GITHUB_API_KEY }}@github.com/$REPO_FULL_NAME.git HEAD:main
 
       - name: Run minification
         run: historia minify --directory ./work-history-data/history
 
       - name: Upload minification to ephemeral branch
+        working-directory: ${{ env.REPO_DIR }}
         run: |
-          git -C checkout --orphan dist
-          git -C rm -rf --cached .
-          git -C $REPO_DIR add .
-          git -C $REPO_DIR commit --message "update min"
-          git -C $REPO_DIR push origin min --force
+          git push https://x-access-token:${{ secrets._GITHUB_API_KEY }}@github.com/$REPO_FULL_NAME.git --delete dist || true  # || true in case branch doesn't exist yet
+
+          git checkout main
+          git branch -D dist || true
+          git checkout -b dist
+          git add .
+          git commit --message "update dist" || true  # || true in case of no changes
+          git push https://x-access-token:${{ secrets._GITHUB_API_KEY }}@github.com/$REPO_FULL_NAME.git HEAD:dist
 
       - name: Push to GitHub project
         run: |
-          historia populate --directory ./work-history-data/history --project-url https://github.com/users/CodyCBakerPhD/projects/4
+          OWNER_PROJECT_URL="https://github.com/$REPO_OWNER_TYPE/$REPO_OWNER/projects/$PROJECT_NUMBER"
+          historia populate --directory ./work-history-data/history --project-url "$OWNER_PROJECT_URL"
           historia populate --directory ./work-history-data/history --project-url https://github.com/orgs/con/projects/6
 
   NotifyOnFailure:
