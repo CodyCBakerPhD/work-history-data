@@ -7,7 +7,9 @@ on:
 
 env:
   GITHUB_TOKEN: ${{ secrets._GITHUB_API_KEY }}
+  REPO_OWNER: ${{ github.repository_owner }}
   REPO_DIR: ${{ github.event.repository.name }}
+  REPO_SLUG: ${{ github.repository }}
   HISTORIA_SPEC: historia @ git+https://github.com/CodyCBakerPhD/historia.git@59c811387b5e024395be646cdf1863e6408746ea
 
 jobs:
@@ -30,9 +32,9 @@ jobs:
             git -C "$REPO_DIR" reset --hard origin/main
             git -C "$REPO_DIR" clean -fd
           else
-            git clone -b main https://github.com/codycbakerphd/$REPO_DIR.git
+            git clone -b main https://github.com/$REPO_SLUG.git
           fi
-          git -C "$REPO_DIR" remote set-url origin https://github.com/codycbakerphd/$REPO_DIR.git
+          git -C "$REPO_DIR" remote set-url origin https://github.com/$REPO_SLUG.git
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -53,13 +55,13 @@ jobs:
 
           python -m pip install "$HISTORIA_SPEC"
 
-          historia data github update --directory ./work-history-data/history --username codycbakerphd --recency 2 
+          historia data github update --directory ./work-history-data/history --username "$REPO_OWNER" --recency 2
 
       - name: Upload content
         run: |
           git -C $REPO_DIR add .
           git -C $REPO_DIR commit --message "update" || true  # || true in case of no changes
-          git -C $REPO_DIR push https://x-access-token:${{ secrets._GITHUB_API_KEY }}@github.com/codycbakerphd/$REPO_DIR.git HEAD:main
+          git -C $REPO_DIR push https://x-access-token:${{ secrets._GITHUB_API_KEY }}@github.com/$REPO_SLUG.git HEAD:main
 
       - name: Run minification
         run: historia minify --directory ./work-history-data/history
@@ -67,19 +69,23 @@ jobs:
 
       - name: Upload minification
         run: |
-          git -C $REPO_DIR push https://x-access-token:${{ secrets._GITHUB_API_KEY }}@github.com/codycbakerphd/$REPO_DIR.git --delete min || true  # || true in case branch doesn't exist yet
+          git -C $REPO_DIR push https://x-access-token:${{ secrets._GITHUB_API_KEY }}@github.com/$REPO_SLUG.git --delete min || true  # || true in case branch doesn't exist yet
 
           git -C $REPO_DIR checkout main
           git -C $REPO_DIR branch -D min || true
           git -C $REPO_DIR checkout -b min
           git -C $REPO_DIR add .
           git -C $REPO_DIR commit --message "update min" || true  # || true in case of no changes
-          git -C $REPO_DIR push https://x-access-token:${{ secrets._GITHUB_API_KEY }}@github.com/codycbakerphd/$REPO_DIR.git HEAD:min
+          git -C $REPO_DIR push https://x-access-token:${{ secrets._GITHUB_API_KEY }}@github.com/$REPO_SLUG.git HEAD:min
 
       - name: Push to GitHub project
         run: |
           cd work-history-data
-          historia populate --directory ./work-history-data/history --project-url https://github.com/users/CodyCBakerPhD/projects/4
+          OWNER_PROJECTS_BASE="https://github.com/users/$REPO_OWNER/projects"
+          if [ "${{ github.event.repository.owner.type }}" = "Organization" ]; then
+            OWNER_PROJECTS_BASE="https://github.com/orgs/$REPO_OWNER/projects"
+          fi
+          historia populate --directory ./work-history-data/history --project-url "$OWNER_PROJECTS_BASE/4"
           historia populate --directory ./work-history-data/history --project-url https://github.com/orgs/con/projects/6
 
   NotifyOnFailure:
@@ -96,4 +102,4 @@ jobs:
           subject: "Work history data update failed"
           to: cody.c.baker.phd@gmail.com
           from: work-history-data
-          body: "Please check the latest run of my work history update: https://github.com/codycbakerphd/work-history-data/actions/workflows/update.yml"
+          body: "Please check the latest run of my work history update: ${{ github.server_url }}/${{ github.repository }}/actions/workflows/update.yml"
