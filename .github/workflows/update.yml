@@ -81,19 +81,17 @@ jobs:
           git commit --message "update" || true  # || true in case of no changes
           git push https://x-access-token:${{ secrets._GITHUB_API_KEY }}@github.com/$REPO_FULL_NAME.git HEAD:main
 
-      - name: Run minification
-        run: historia minify --directory ./work-history-data/history
+      - name: Create compressed content
+        working-directory: ${{ env.REPO_DIR }}
+        run: tar -czf content.tar.gz content/
 
-      - name: Upload minification to ephemeral branch
+      - name: Push archive to dist branch
         working-directory: ${{ env.REPO_DIR }}
         run: |
-          git push https://x-access-token:${{ secrets._GITHUB_API_KEY }}@github.com/$REPO_FULL_NAME.git --delete dist || true  # || true in case branch doesn't exist yet
-
-          git checkout main
-          git branch -D dist || true
-          git checkout -b dist
-          git add .
-          git commit --message "update dist" || true  # || true in case of no changes
+          git checkout --orphan dist
+          git rm -rf --cached .
+          git add content.tar.gz
+          git commit -m "update dist archive [skip ci]"
           git push https://x-access-token:${{ secrets._GITHUB_API_KEY }}@github.com/$REPO_FULL_NAME.git HEAD:dist
 
       - name: Push to GitHub project
