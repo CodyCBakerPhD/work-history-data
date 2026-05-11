@@ -41,8 +41,7 @@ jobs:
 
       - name: Prepare repository from remote
         if: steps.repo-cache.outputs.cache-hit != 'true'
-        run: |
-          git clone -b main "https://github.com/$REPO_FULL_NAME.git" "$REPO_DIR"
+        run: git clone -b main "https://github.com/$REPO_FULL_NAME.git" "$REPO_DIR"
 
       - name: Configure git identity
         run: |
