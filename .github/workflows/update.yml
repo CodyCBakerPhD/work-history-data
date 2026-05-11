@@ -31,7 +31,7 @@ jobs:
 
           historia data github update --directory ./work-history-data/history --username codycbakerphd --recency 2 
 
-      - name: Upload content
+      - name: Upload new content
         run: |
           git -C $REPO_DIR add .
           git -C $REPO_DIR commit --message "update" || true  # || true in case of no changes
@@ -40,19 +40,16 @@ jobs:
       - name: Run minification
         run: historia minify --directory ./work-history-data/history
 
-
-      - name: Upload minification
+      - name: Upload minification to ephemeral branch
         run: |
-          git -C $REPO_DIR push origin --delete min || true  # || true in case branch doesn't exist yet
-
-          git -C $REPO_DIR checkout -b min
+          git -C checkout --orphan dist
+          git -C rm -rf --cached .
           git -C $REPO_DIR add .
-          git -C $REPO_DIR commit --message "update min" || true  # || true in case of no changes
-          git -C $REPO_DIR push --set-upstream origin min
+          git -C $REPO_DIR commit --message "update min"
+          git -C $REPO_DIR push origin min --force
 
       - name: Push to GitHub project
         run: |
-          cd work-history-data
           historia populate --directory ./work-history-data/history --project-url https://github.com/users/CodyCBakerPhD/projects/4
           historia populate --directory ./work-history-data/history --project-url https://github.com/orgs/con/projects/6
 
