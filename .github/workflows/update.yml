@@ -44,8 +44,7 @@ jobs:
         with:
           path: ~/.cache/pip
           key: pip-${{ runner.os }}-py3.13-${{ hashFiles('.github/workflows/update.yml') }}
-          restore-keys: |
-            pip-${{ runner.os }}-py3.13-
+          restore-keys: pip-${{ runner.os }}-py3.13-
 
       - name: Run update
         run: |
