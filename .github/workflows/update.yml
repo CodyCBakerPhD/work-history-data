@@ -33,11 +33,12 @@ jobs:
 
       - name: Prepare repository from cache
         if: steps.repo-cache.outputs.cache-hit == 'true'
+        working-directory: ${{ env.REPO_DIR }}
         run: |
-          git -C "$REPO_DIR" fetch origin main
-          git -C "$REPO_DIR" checkout main
-          git -C "$REPO_DIR" reset --hard origin/main
-          git -C "$REPO_DIR" clean -fd
+          git fetch origin main
+          git checkout main
+          git reset --hard origin/main
+          git clean -fd
 
       - name: Prepare repository from remote
         if: steps.repo-cache.outputs.cache-hit != 'true'
