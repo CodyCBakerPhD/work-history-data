@@ -94,7 +94,7 @@ jobs:
           git rm -rf --cached .
           git add content.tar.gz
           git commit -m "update dist archive [skip ci]"
-          git push https://x-access-token:${{ secrets._GITHUB_API_KEY }}@github.com/$REPO_FULL_NAME.git HEAD:dist
+          git push --force https://x-access-token:${{ secrets._GITHUB_API_KEY }}@github.com/$REPO_FULL_NAME.git HEAD:dist
 
       - name: Push to GitHub project
         run: |
