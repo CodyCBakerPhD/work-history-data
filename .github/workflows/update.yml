@@ -25,7 +25,7 @@ jobs:
     steps:
       - name: Restore repository cache
         id: repo-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ${{ env.REPO_DIR }}
           key: repo-${{ runner.os }}-${{ github.repository }}-${{ hashFiles('.github/workflows/update.yml') }}
@@ -56,7 +56,7 @@ jobs:
 
       - name: Restore pip cache
         id: pip-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.cache/pip
