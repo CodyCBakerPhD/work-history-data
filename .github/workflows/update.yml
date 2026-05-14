@@ -99,8 +99,8 @@ jobs:
       - name: Push to GitHub project
         run: |
           OWNER_PROJECT_URL="https://github.com/$REPO_OWNER_TYPE/$REPO_OWNER/projects/$PROJECT_NUMBER"
-          historia populate --directory ./work-history-data/history --project-url "$OWNER_PROJECT_URL"
-          historia populate --directory ./work-history-data/history --project-url https://github.com/orgs/con/projects/6
+          historia populate --directory ./work-history-data/history --project-url "$OWNER_PROJECT_URL" --status Uncategorized
+          historia populate --directory ./work-history-data/history --project-url https://github.com/orgs/con/projects/6 --status Incoming
 
   NotifyOnFailure:
     runs-on: ubuntu-latest
