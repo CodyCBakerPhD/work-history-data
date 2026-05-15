@@ -41,7 +41,7 @@ jobs:
         working-directory: ${{ env.REPO_DIR }}
         run: |
           git fetch origin main
-          git checkout main
+          git checkout -f main
           git reset --hard origin/main
           git clean -fd
 
@@ -120,5 +120,5 @@ jobs:
           password: ${{ secrets.MAIL_PASSWORD }}
           subject: "Work history data update failed"
           to: cody.c.baker.phd@gmail.com
-          from: work-history-data
+          from: work-history-data <${{ secrets.MAIL_USERNAME }}>
           body: "Please check the latest run of my work history update: https://github.com/codycbakerphd/work-history-data/actions/workflows/update.yml"
