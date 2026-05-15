@@ -41,6 +41,7 @@ jobs:
         working-directory: ${{ env.REPO_DIR }}
         run: |
           git fetch origin main
+          git clean -fd
           git checkout main
           git reset --hard origin/main
           git clean -fd
