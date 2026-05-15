@@ -95,6 +95,7 @@ jobs:
       - name: Push archive to dist branch
         working-directory: ${{ env.REPO_DIR }}
         run: |
+          git branch -D dist || true
           git checkout --orphan dist
           git rm -rf --cached .
           git add content.tar.gz
