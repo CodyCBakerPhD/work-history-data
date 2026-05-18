@@ -116,7 +116,21 @@ jobs:
     needs: [ Update ]
     if: ${{ always() && failure() }}
     steps:
+      - name: Check mail configuration
+        id: mail-config
+        env:
+          MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
+          MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
+        run: |
+          if [ -n "$MAIL_USERNAME" ] && [ -n "$MAIL_PASSWORD" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "MAIL_USERNAME or MAIL_PASSWORD is not set; skipping failure notification."
+          fi
+
       - uses: dawidd6/action-send-mail@v17
+        if: steps.mail-config.outputs.configured == 'true'
         with:
           server_address: smtp.gmail.com
           server_port: 465
