@@ -15,7 +15,7 @@ env:
   USERNAME: ${{ github.repository_owner }}
   PROJECT_NUMBER: 4
   PYTHON_VERSION: "3.13"
-  HISTORIA_SPEC: historia==0.10.2
+  HISTORIA_SPEC: historia==0.10.5
   # Let these set themselves
   GITHUB_TOKEN: ${{ secrets._GITHUB_API_KEY }}
   REPO_OWNER: ${{ github.repository_owner }}
@@ -106,7 +106,7 @@ jobs:
         run: |
           OWNER_PROJECT_URL="https://github.com/$REPO_OWNER_TYPE/$REPO_OWNER/projects/$PROJECT_NUMBER"
           historia project populate --directory ./work-history-data/history --url "$OWNER_PROJECT_URL" --status Uncategorized
-          historia project populate --directory ./work-history-data/history --url https://github.com/orgs/con/projects/6 --status Incoming
+          historia project populate --directory ./work-history-data/history --url https://github.com/orgs/con/projects/6 --status Incoming --members
 
   NotifyOnFailure:
     runs-on: ubuntu-latest
