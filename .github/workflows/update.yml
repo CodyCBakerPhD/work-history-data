@@ -69,7 +69,7 @@ jobs:
           path: |
             ~/.cache/pip
             ~/.local
-          key: pip-${{ runner.os }}-py${{ env.PYTHON_VERSION }}-${{ hashFiles('.github/workflows/update.yml') }}
+          key: pip-${{ runner.os }}-py${{ env.PYTHON_VERSION }}-${{ env.HISTORIA_SPEC }}
           restore-keys: pip-${{ runner.os }}-py${{ env.PYTHON_VERSION }}-
 
       - name: Install historia
