@@ -70,9 +70,9 @@ jobs:
             ~/.cache/pip
             ~/.local
           key: pip-${{ runner.os }}-py${{ env.PYTHON_VERSION }}-${{ env.HISTORIA_SPEC }}
-          restore-keys: pip-${{ runner.os }}-py${{ env.PYTHON_VERSION }}-
 
       - name: Install historia
+        if: steps.pip-cache.outputs.cache-hit != 'true'
         run: |
           python -m pip install --upgrade pip
           python -m pip install --user "$HISTORIA_SPEC"
