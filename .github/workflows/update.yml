@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       recency:
-        description: "Number of recent months to fetch (default: 2)"
+        description: "Number of recent days to fetch (default: 2)"
         required: false
         default: "2"
   schedule:
