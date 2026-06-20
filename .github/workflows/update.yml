@@ -112,7 +112,7 @@ jobs:
         run: |
           OWNER_PROJECT_URL="https://github.com/$REPO_OWNER_TYPE/$REPO_OWNER/projects/$PROJECT_NUMBER"
           historia project populate --directory ./work-history-data/history --url "$OWNER_PROJECT_URL" --status Uncategorized
-          historia project populate --directory ./work-history-data/history --url https://github.com/orgs/con/projects/6 --status Incoming --members
+          historia project populate --directory ./work-history-data/history --url https://github.com/orgs/con/projects/6 --status Incoming
 
   NotifyOnFailure:
     runs-on: ubuntu-latest
