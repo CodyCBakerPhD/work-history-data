@@ -18,7 +18,7 @@ env:
   USERNAME: ${{ github.repository_owner }}
   PROJECT_NUMBER: 4
   PYTHON_VERSION: "3.13"
-  HISTORIA_SPEC: historia==0.10.8
+  HISTORIA_SPEC: historia==0.10.11
   # Let these set themselves
   GITHUB_TOKEN: ${{ secrets._GITHUB_API_KEY }}
   REPO_OWNER: ${{ github.repository_owner }}
