@@ -108,10 +108,14 @@ jobs:
           git commit -m "update dist archive [skip ci]"
           git push --force https://x-access-token:${{ secrets._GITHUB_API_KEY }}@github.com/$REPO_FULL_NAME.git HEAD:dist
 
-      - name: Push to GitHub project
+      - name: Push to personal project
         run: |
           OWNER_PROJECT_URL="https://github.com/$REPO_OWNER_TYPE/$REPO_OWNER/projects/$PROJECT_NUMBER"
           historia project populate --directory ./work-history-data/history --url "$OWNER_PROJECT_URL" --status Uncategorized
+
+      - name: Push to CON project
+        run: |
+          OWNER_PROJECT_URL="https://github.com/$REPO_OWNER_TYPE/$REPO_OWNER/projects/$PROJECT_NUMBER"
           historia project populate --directory ./work-history-data/history --url https://github.com/orgs/con/projects/6 --status Incoming
 
   NotifyOnFailure:
