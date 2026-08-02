@@ -2,17 +2,25 @@ name: Update work history data
 
 on:
   workflow_dispatch:
+    inputs:
+      recency:
+        description: "Number of recent days to fetch (default: 2)"
+        required: false
+        default: "2"
   schedule:
     - cron: "0 0 * * *"
 
+permissions:
+  contents: read
+
 env:
   # Set these
-  USERNAME: CodyCBakerPhD
-  PROJECT_NUMBER: 13
+  USERNAME: ${{ github.repository_owner }}
+  PROJECT_NUMBER: 4
   PYTHON_VERSION: "3.13"
-  HISTORIA_SPEC: historia==0.10.12
+  HISTORIA_SPEC: historia==0.10.11
   # Let these set themselves
-  GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+  GITHUB_TOKEN: ${{ secrets._GITHUB_API_KEY }}
   REPO_OWNER: ${{ github.repository_owner }}
   REPO_OWNER_TYPE: ${{ fromJSON('{"Organization":"orgs","User":"users"}')[github.event.repository.owner.type] }}
   REPO_DIR: ${{ github.event.repository.name }}
@@ -25,7 +33,7 @@ jobs:
     steps:
       - name: Restore repository cache
         id: repo-cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ${{ env.REPO_DIR }}
           key: repo-${{ runner.os }}-${{ github.repository }}-${{ hashFiles('.github/workflows/update.yml') }}
@@ -54,15 +62,18 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
+      - name: Get exact Python version
+        id: python-version
+        run: echo "value=$(python --version | cut -d' ' -f2)" >> "$GITHUB_OUTPUT"
+
       - name: Restore pip cache
         id: pip-cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: |
             ~/.cache/pip
             ~/.local
-          key: pip-${{ runner.os }}-py${{ env.PYTHON_VERSION }}-${{ hashFiles('.github/workflows/update.yml') }}
-          restore-keys: pip-${{ runner.os }}-py${{ env.PYTHON_VERSION }}-
+          key: pip-${{ runner.os }}-py${{ steps.python-version.outputs.value }}-${{ env.HISTORIA_SPEC }}
 
       - name: Install historia
         if: steps.pip-cache.outputs.cache-hit != 'true'
@@ -74,15 +85,14 @@ jobs:
         run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - name: Run update
-        working-directory: ${{ env.REPO_DIR }}
-        run: historia update github --directory ./history --username "$USERNAME" --recency 2
+        run: historia update github --directory ./work-history-data/history --username "$USERNAME" --recency ${{ inputs.recency || 2 }}
 
       - name: Upload new content
         working-directory: ${{ env.REPO_DIR }}
         run: |
           git add .
           git commit --message "update" || true  # || true in case of no changes
-          git push https://x-access-token:${{ env.GITHUB_TOKEN }}@github.com/$REPO_FULL_NAME.git HEAD:main
+          git push https://x-access-token:${{ secrets._GITHUB_API_KEY }}@github.com/$REPO_FULL_NAME.git HEAD:main
 
       - name: Create compressed content
         working-directory: ${{ env.REPO_DIR }}
@@ -96,11 +106,30 @@ jobs:
           git rm -rf --cached .
           git add content.tar.gz
           git commit -m "update dist archive [skip ci]"
-          git push --force https://x-access-token:${{ env.GITHUB_TOKEN }}@github.com/$REPO_FULL_NAME.git HEAD:dist
+          git push --force https://x-access-token:${{ secrets._GITHUB_API_KEY }}@github.com/$REPO_FULL_NAME.git HEAD:dist
 
-      - name: Push to GitHub project
-        working-directory: ${{ env.REPO_DIR }}
+      - name: Push to personal project
         run: |
           OWNER_PROJECT_URL="https://github.com/$REPO_OWNER_TYPE/$REPO_OWNER/projects/$PROJECT_NUMBER"
-          historia project populate --directory ./history --url "$OWNER_PROJECT_URL" --yes
-          historia project update dates --url "$OWNER_PROJECT_URL"
+          historia project populate --directory ./work-history-data/history --url "$OWNER_PROJECT_URL" --status Uncategorized
+
+      - name: Push to CON project
+        run: |
+          OWNER_PROJECT_URL="https://github.com/$REPO_OWNER_TYPE/$REPO_OWNER/projects/$PROJECT_NUMBER"
+          historia project populate --directory ./work-history-data/history --url https://github.com/orgs/con/projects/6 --status Incoming
+
+  NotifyOnFailure:
+    runs-on: ubuntu-latest
+    needs: [ Update ]
+    if: ${{ always() && failure() }}
+    steps:
+      - uses: dawidd6/action-send-mail@v18
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: "Work history data update failed"
+          to: cody.c.baker.phd@gmail.com
+          from: work-history-data <${{ secrets.MAIL_USERNAME }}>
+          body: "Please check the latest run of my work history update: https://github.com/codycbakerphd/work-history-data/actions/workflows/update.yml"
