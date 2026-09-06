@@ -14,9 +14,9 @@ jobs:
 
     steps:
       - name: Run transition
-        uses: docker://ghcr.io/codycbakerphd/historia:0.10.14
+        uses: docker://ghcr.io/codycbakerphd/historia:0.10.16
         env:
-          GITHUB_TOKEN: ${{ secrets._GITHUB_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
         with:
           # An action always runs headless, so the confirmation prompt is never answerable.
           args: project transition --url https://github.com/orgs/con/projects/6 --current DONE --new History --yes

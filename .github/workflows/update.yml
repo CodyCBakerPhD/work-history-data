@@ -24,25 +24,29 @@ env:
 jobs:
   Update:
     runs-on: ubuntu-latest
+    # The checkout and pushes use the workflow's own `GITHUB_TOKEN`, so this job needs write access.
+    # The `GH_PAT` secret only reads the activity and writes the project boards; it never pushes.
+    permissions:
+      contents: write
 
     steps:
       # Checks out the repository, fetches recent activity, commits and pushes the new content,
       # populates the personal project (and refreshes its dates), and force-pushes the compressed
       # archive to the `dist` branch.
       - name: Run work history update
-        uses: CodyCBakerPhD/historia/action@v0.10.14
+        uses: CodyCBakerPhD/historia/action@v0.10.16
         with:
           username: ${{ env.USERNAME }}
           project-url: https://github.com/${{ env.REPO_OWNER_TYPE }}/${{ env.REPO_OWNER }}/projects/${{ env.PROJECT_NUMBER }}
-          token: ${{ secrets._GITHUB_API_KEY }}
+          token: ${{ secrets.GH_PAT }}
           recency: ${{ inputs.recency || '2' }}
 
       # The vendored `project-populate` action does not expose `--status`, so use the same pinned
       # container image directly to keep the custom `Incoming` status for the CON project.
       - name: Push to CON project
-        uses: docker://ghcr.io/codycbakerphd/historia:0.10.14
+        uses: docker://ghcr.io/codycbakerphd/historia:0.10.16
         env:
-          GITHUB_TOKEN: ${{ secrets._GITHUB_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
         with:
           args: project populate --directory ./history --url https://github.com/orgs/con/projects/6 --status Incoming --yes
 
