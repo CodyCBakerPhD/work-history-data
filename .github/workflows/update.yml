@@ -17,7 +17,6 @@ env:
   # Set these
   USERNAME: ${{ github.repository_owner }}
   PROJECT_NUMBER: 4
-  HISTORIA_VERSION: 0.10.14
   # Let these set themselves
   REPO_OWNER: ${{ github.repository_owner }}
   REPO_OWNER_TYPE: ${{ fromJSON('{"Organization":"orgs","User":"users"}')[github.event.repository.owner.type] }}
@@ -38,18 +37,14 @@ jobs:
           token: ${{ secrets._GITHUB_API_KEY }}
           recency: ${{ inputs.recency || '2' }}
 
-      # The vendored `project-populate` action does not expose `--status`, so run the same pinned
+      # The vendored `project-populate` action does not expose `--status`, so use the same pinned
       # container image directly to keep the custom `Incoming` status for the CON project.
       - name: Push to CON project
+        uses: docker://ghcr.io/codycbakerphd/historia:0.10.14
         env:
           GITHUB_TOKEN: ${{ secrets._GITHUB_API_KEY }}
-        run: |
-          docker run --rm \
-            --env GITHUB_TOKEN \
-            --volume "$PWD:/github/workspace" \
-            --workdir /github/workspace \
-            "ghcr.io/codycbakerphd/historia:$HISTORIA_VERSION" \
-            project populate --directory ./history --url https://github.com/orgs/con/projects/6 --status Incoming --yes
+        with:
+          args: project populate --directory ./history --url https://github.com/orgs/con/projects/6 --status Incoming --yes
 
   NotifyOnFailure:
     runs-on: ubuntu-latest
