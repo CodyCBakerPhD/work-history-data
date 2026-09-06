@@ -17,106 +17,39 @@ env:
   # Set these
   USERNAME: ${{ github.repository_owner }}
   PROJECT_NUMBER: 4
-  PYTHON_VERSION: "3.13"
-  HISTORIA_SPEC: historia==0.10.11
+  HISTORIA_VERSION: 0.10.14
   # Let these set themselves
-  GITHUB_TOKEN: ${{ secrets._GITHUB_API_KEY }}
   REPO_OWNER: ${{ github.repository_owner }}
   REPO_OWNER_TYPE: ${{ fromJSON('{"Organization":"orgs","User":"users"}')[github.event.repository.owner.type] }}
-  REPO_DIR: ${{ github.event.repository.name }}
-  REPO_FULL_NAME: ${{ github.repository }}
 
 jobs:
   Update:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Restore repository cache
-        id: repo-cache
-        uses: actions/cache@v6
+      # Checks out the repository, fetches recent activity, commits and pushes the new content,
+      # populates the personal project (and refreshes its dates), and force-pushes the compressed
+      # archive to the `dist` branch.
+      - name: Run work history update
+        uses: CodyCBakerPhD/historia/action@v0.10.14
         with:
-          path: ${{ env.REPO_DIR }}
-          key: repo-${{ runner.os }}-${{ github.repository }}-${{ hashFiles('.github/workflows/update.yml') }}
-          restore-keys: repo-${{ runner.os }}-${{ github.repository }}-
+          username: ${{ env.USERNAME }}
+          project-url: https://github.com/${{ env.REPO_OWNER_TYPE }}/${{ env.REPO_OWNER }}/projects/${{ env.PROJECT_NUMBER }}
+          token: ${{ secrets._GITHUB_API_KEY }}
+          recency: ${{ inputs.recency || '2' }}
 
-      - name: Prepare repository from cache
-        if: steps.repo-cache.outputs.cache-hit == 'true'
-        working-directory: ${{ env.REPO_DIR }}
-        run: |
-          git fetch origin main
-          git checkout -f main
-          git reset --hard origin/main
-          git clean -fd
-
-      - name: Prepare repository from remote
-        if: steps.repo-cache.outputs.cache-hit != 'true'
-        run: git clone -b main "https://github.com/$REPO_FULL_NAME.git" "$REPO_DIR"
-
-      - name: Configure git identity
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-
-      - name: Setup Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Get exact Python version
-        id: python-version
-        run: echo "value=$(python --version | cut -d' ' -f2)" >> "$GITHUB_OUTPUT"
-
-      - name: Restore pip cache
-        id: pip-cache
-        uses: actions/cache@v6
-        with:
-          path: |
-            ~/.cache/pip
-            ~/.local
-          key: pip-${{ runner.os }}-py${{ steps.python-version.outputs.value }}-${{ env.HISTORIA_SPEC }}
-
-      - name: Install historia
-        if: steps.pip-cache.outputs.cache-hit != 'true'
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install --user "$HISTORIA_SPEC"
-
-      - name: Add user-local bin to PATH
-        run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-
-      - name: Run update
-        run: historia update github --directory ./work-history-data/history --username "$USERNAME" --recency ${{ inputs.recency || 2 }}
-
-      - name: Upload new content
-        working-directory: ${{ env.REPO_DIR }}
-        run: |
-          git add .
-          git commit --message "update" || true  # || true in case of no changes
-          git push https://x-access-token:${{ secrets._GITHUB_API_KEY }}@github.com/$REPO_FULL_NAME.git HEAD:main
-
-      - name: Create compressed content
-        working-directory: ${{ env.REPO_DIR }}
-        run: tar -czf content.tar.gz ./history/
-
-      - name: Push archive to dist branch
-        working-directory: ${{ env.REPO_DIR }}
-        run: |
-          git branch -D dist || true
-          git checkout --orphan dist
-          git rm -rf --cached .
-          git add content.tar.gz
-          git commit -m "update dist archive [skip ci]"
-          git push --force https://x-access-token:${{ secrets._GITHUB_API_KEY }}@github.com/$REPO_FULL_NAME.git HEAD:dist
-
-      - name: Push to personal project
-        run: |
-          OWNER_PROJECT_URL="https://github.com/$REPO_OWNER_TYPE/$REPO_OWNER/projects/$PROJECT_NUMBER"
-          historia project populate --directory ./work-history-data/history --url "$OWNER_PROJECT_URL" --status Uncategorized
-
+      # The vendored `project-populate` action does not expose `--status`, so run the same pinned
+      # container image directly to keep the custom `Incoming` status for the CON project.
       - name: Push to CON project
+        env:
+          GITHUB_TOKEN: ${{ secrets._GITHUB_API_KEY }}
         run: |
-          OWNER_PROJECT_URL="https://github.com/$REPO_OWNER_TYPE/$REPO_OWNER/projects/$PROJECT_NUMBER"
-          historia project populate --directory ./work-history-data/history --url https://github.com/orgs/con/projects/6 --status Incoming
+          docker run --rm \
+            --env GITHUB_TOKEN \
+            --volume "$PWD:/github/workspace" \
+            --workdir /github/workspace \
+            "ghcr.io/codycbakerphd/historia:$HISTORIA_VERSION" \
+            project populate --directory ./history --url https://github.com/orgs/con/projects/6 --status Incoming --yes
 
   NotifyOnFailure:
     runs-on: ubuntu-latest
