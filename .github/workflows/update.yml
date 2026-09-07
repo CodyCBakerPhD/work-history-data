@@ -31,20 +31,22 @@ jobs:
 
     steps:
       # Checks out the repository, fetches recent activity, commits and pushes the new content,
-      # populates the personal project (and refreshes its dates), and force-pushes the compressed
-      # archive to the `dist` branch.
+      # populates the personal project, and force-pushes the compressed archive to the `dist`
+      # branch. Refreshing the dates already on the board is no longer part of it: that pass walks
+      # every item, so it costs the whole hourly GraphQL budget on a board this size. It returns as
+      # its own step once the action exposes `--recency`.
       - name: Run work history update
-        uses: CodyCBakerPhD/historia/action@v0.10.16
+        uses: CodyCBakerPhD/historia-action@v1
         with:
           username: ${{ env.USERNAME }}
           project-url: https://github.com/${{ env.REPO_OWNER_TYPE }}/${{ env.REPO_OWNER }}/projects/${{ env.PROJECT_NUMBER }}
           token: ${{ secrets.GH_PAT }}
           recency: ${{ inputs.recency || '2' }}
 
-      # The vendored `project-populate` action does not expose `--status`, so use the same pinned
-      # container image directly to keep the custom `Incoming` status for the CON project.
+      # The `project-populate` action does not expose `--status`, so use the same image the actions
+      # pin directly to keep the custom `Incoming` status for the CON project.
       - name: Push to CON project
-        uses: docker://ghcr.io/codycbakerphd/historia:0.10.16
+        uses: docker://ghcr.io/codycbakerphd/historia:0.10.15
         env:
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
         with:
