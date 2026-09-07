@@ -30,16 +30,30 @@ jobs:
       contents: write
 
     steps:
+      # THROWAWAY BRANCH. This is `claude/historia-version-mismatch-miu0zy` wired to the unmerged
+      # CodyCBakerPhD/historia-action#4 and CodyCBakerPhD/historia#183 so both can be exercised
+      # against real boards before either merges. Never merge this branch.
+      #
       # Checks out the repository, fetches recent activity, commits and pushes the new content,
-      # populates the personal project (and refreshes its dates), and force-pushes the compressed
-      # archive to the `dist` branch.
+      # and populates the personal project. The archive is disabled so the test cannot force-push
+      # over `dist`, and the date refresh is no longer part of the composite.
       - name: Run work history update
-        uses: CodyCBakerPhD/historia-action@v0
+        uses: CodyCBakerPhD/historia-action@claude/split-date-refresh-from-composite
         with:
           username: ${{ env.USERNAME }}
           project-url: https://github.com/${{ env.REPO_OWNER_TYPE }}/${{ env.REPO_OWNER }}/projects/${{ env.PROJECT_NUMBER }}
           token: ${{ secrets.GH_PAT }}
           recency: ${{ inputs.recency || '2' }}
+          archive-branch: ""
+
+      # The `dev` image is built from `claude/project-update-dates-recency`, so this is the only
+      # place `--recency` exists yet. The step the composite used to run walked all 3855 items.
+      - name: Refresh personal project dates
+        uses: docker://ghcr.io/codycbakerphd/historia:dev
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+        with:
+          args: project update dates --url https://github.com/${{ env.REPO_OWNER_TYPE }}/${{ env.REPO_OWNER }}/projects/${{ env.PROJECT_NUMBER }} --placeholder 180 --recency 2
 
       # The `project-populate` action does not expose `--status`, so use the same image the actions
       # pin directly to keep the custom `Incoming` status for the CON project.
