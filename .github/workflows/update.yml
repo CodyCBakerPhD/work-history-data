@@ -29,26 +29,72 @@ jobs:
     permissions:
       contents: write
 
+    # `CodyCBakerPhD/historia/action@v0.10.15` cannot be used: the files under `action/` at that tag
+    # were already bumped to `0.10.16`, a release that does not exist, so every `uses:` inside the
+    # composite resolves to a missing tag. The steps below are that composite, inlined against the
+    # latest published image.
     steps:
-      # Checks out the repository, fetches recent activity, commits and pushes the new content,
-      # populates the personal project (and refreshes its dates), and force-pushes the compressed
-      # archive to the `dist` branch.
-      - name: Run work history update
-        uses: CodyCBakerPhD/historia/action@v0.10.16
+      # The checkout persists this token in the git config, so every `git push` below uses it too.
+      - name: Check out the data repository
+        uses: actions/checkout@v7
         with:
-          username: ${{ env.USERNAME }}
-          project-url: https://github.com/${{ env.REPO_OWNER_TYPE }}/${{ env.REPO_OWNER }}/projects/${{ env.PROJECT_NUMBER }}
-          token: ${{ secrets.GH_PAT }}
-          recency: ${{ inputs.recency || '2' }}
+          token: ${{ github.token }}
 
-      # The vendored `project-populate` action does not expose `--status`, so use the same pinned
-      # container image directly to keep the custom `Incoming` status for the CON project.
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Update work history data
+        uses: docker://ghcr.io/codycbakerphd/historia:0.10.15
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+        with:
+          args: update github --directory ./history --username ${{ env.USERNAME }} --recency ${{ inputs.recency || '2' }}
+
+      # The update runs in a container as root, so the files it wrote are root-owned and the steps
+      # below, which run as the unprivileged runner user, could not otherwise commit them.
+      - name: Restore workspace ownership
+        run: sudo chown -R "$(id -u):$(id -g)" .
+
+      - name: Commit and push new content
+        run: |
+          git add .
+          git diff --quiet --cached || git commit --message update
+          git push
+
+      - name: Populate the personal project
+        uses: docker://ghcr.io/codycbakerphd/historia:0.10.15
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+        with:
+          # An action always runs headless, so the confirmation prompt is never answerable.
+          args: project populate --directory ./history --url https://github.com/${{ env.REPO_OWNER_TYPE }}/${{ env.REPO_OWNER }}/projects/${{ env.PROJECT_NUMBER }} --placeholder 180 --yes
+
+      - name: Update personal project dates
+        uses: docker://ghcr.io/codycbakerphd/historia:0.10.15
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+        with:
+          args: project update dates --url https://github.com/${{ env.REPO_OWNER_TYPE }}/${{ env.REPO_OWNER }}/projects/${{ env.PROJECT_NUMBER }} --placeholder 180
+
       - name: Push to CON project
-        uses: docker://ghcr.io/codycbakerphd/historia:0.10.16
+        uses: docker://ghcr.io/codycbakerphd/historia:0.10.15
         env:
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
         with:
           args: project populate --directory ./history --url https://github.com/orgs/con/projects/6 --status Incoming --yes
+
+      # Last, because it leaves the checkout on the orphan archive branch.
+      - name: Push the compressed archive
+        run: |
+          tar -czf content.tar.gz history
+          git branch -D dist || true
+          git checkout --orphan dist
+          git rm -rf --cached .
+          git add content.tar.gz
+          git commit --message "update dist archive [skip ci]"
+          git push --force origin HEAD:dist
 
   NotifyOnFailure:
     runs-on: ubuntu-latest
