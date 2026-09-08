@@ -32,21 +32,31 @@ jobs:
     steps:
       # Checks out the repository, fetches recent activity, commits and pushes the new content,
       # populates the personal project, and force-pushes the compressed archive to the `dist`
-      # branch. Refreshing the dates already on the board is no longer part of it: that pass walks
-      # every item, so it costs the whole hourly GraphQL budget on a board this size. It returns as
-      # its own step once the action exposes `--recency`.
+      # branch. Refreshing the dates already on the board is the step below rather than part of
+      # this one.
       - name: Run work history update
-        uses: CodyCBakerPhD/historia-action@v1
+        uses: CodyCBakerPhD/historia-action@v2
         with:
           username: ${{ env.USERNAME }}
           project-url: https://github.com/${{ env.REPO_OWNER_TYPE }}/${{ env.REPO_OWNER }}/projects/${{ env.PROJECT_NUMBER }}
           token: ${{ secrets.GH_PAT }}
           recency: ${{ inputs.recency || '2' }}
 
+      # Populating dates the items it adds, so this catches the ones whose dates moved afterwards,
+      # mostly ones closed since. The same window as the fetch above, so a run covers the items it
+      # could have changed. Without it the pass walks all 3855 items at two GraphQL mutations each
+      # and spends the hourly budget before finishing.
+      - name: Refresh personal project dates
+        uses: CodyCBakerPhD/historia-action/project-update-dates@v2
+        with:
+          url: https://github.com/${{ env.REPO_OWNER_TYPE }}/${{ env.REPO_OWNER }}/projects/${{ env.PROJECT_NUMBER }}
+          recency: ${{ inputs.recency || '2' }}
+          token: ${{ secrets.GH_PAT }}
+
       # The `project-populate` action does not expose `--status`, so use the same image the actions
       # pin directly to keep the custom `Incoming` status for the CON project.
       - name: Push to CON project
-        uses: docker://ghcr.io/codycbakerphd/historia:0.10.15
+        uses: docker://ghcr.io/codycbakerphd/historia:0.11.1
         env:
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
         with:
