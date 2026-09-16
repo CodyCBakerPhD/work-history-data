@@ -3,7 +3,11 @@ name: Move DONE to History
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 0 * * *"
+    # Staggered six hours after the `update.yml` run rather than sharing its midnight slot.
+    # Both workflows spend the same `GH_PAT`, and the GraphQL budget of 5000 points per hour is
+    # per user account, so running them together left this pass competing with the populate steps
+    # for one pool and tripped `RATE_LIMIT`. Six hours clears the hourly reset with room to spare.
+    - cron: "0 6 * * *"
 
 permissions:
   contents: read
