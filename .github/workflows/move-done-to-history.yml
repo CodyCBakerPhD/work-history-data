@@ -18,7 +18,7 @@ jobs:
 
     steps:
       - name: Run transition
-        uses: docker://ghcr.io/codycbakerphd/historia:0.10.15
+        uses: docker://ghcr.io/codycbakerphd/historia:0.11.2
         env:
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
         with:
