@@ -35,7 +35,7 @@ jobs:
       # branch. Refreshing the dates already on the board is the step below rather than part of
       # this one.
       - name: Run work history update
-        uses: CodyCBakerPhD/historia-action@v3
+        uses: CodyCBakerPhD/historia-action@v4
         with:
           username: ${{ env.USERNAME }}
           project-url: https://github.com/${{ env.REPO_OWNER_TYPE }}/${{ env.REPO_OWNER }}/projects/${{ env.PROJECT_NUMBER }}
@@ -47,7 +47,7 @@ jobs:
       # could have changed. Without it the pass walks all 3855 items at two GraphQL mutations each
       # and spends the hourly budget before finishing.
       - name: Refresh personal project dates
-        uses: CodyCBakerPhD/historia-action/project-update-dates@v3
+        uses: CodyCBakerPhD/historia-action/project-update-dates@v4
         with:
           url: https://github.com/${{ env.REPO_OWNER_TYPE }}/${{ env.REPO_OWNER }}/projects/${{ env.PROJECT_NUMBER }}
           recency: ${{ inputs.recency || '2' }}
