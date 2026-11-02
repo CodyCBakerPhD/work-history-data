@@ -26,8 +26,10 @@ jobs:
     runs-on: ubuntu-latest
     # The checkout and pushes use the workflow's own `GITHUB_TOKEN`, so this job needs write access.
     # The `GH_PAT` secret only reads the activity and writes the project boards; it never pushes.
+    # `issues: write` lets the update keep an issue open while runs keep hitting the rate limit.
     permissions:
       contents: write
+      issues: write
 
     steps:
       # Checks out the repository, fetches recent activity, commits and pushes the new content,
@@ -35,7 +37,7 @@ jobs:
       # branch. Refreshing the dates already on the board is the step below rather than part of
       # this one.
       - name: Run work history update
-        uses: CodyCBakerPhD/historia-action@v5
+        uses: CodyCBakerPhD/historia-action@v6
         with:
           username: ${{ env.USERNAME }}
           project-url: https://github.com/${{ env.REPO_OWNER_TYPE }}/${{ env.REPO_OWNER }}/projects/${{ env.PROJECT_NUMBER }}
@@ -47,7 +49,7 @@ jobs:
       # could have changed. Without it the pass walks all 3855 items at two GraphQL mutations each
       # and spends the hourly budget before finishing.
       - name: Refresh personal project dates
-        uses: CodyCBakerPhD/historia-action/project-update-dates@v5
+        uses: CodyCBakerPhD/historia-action/project-update-dates@v6
         with:
           url: https://github.com/${{ env.REPO_OWNER_TYPE }}/${{ env.REPO_OWNER }}/projects/${{ env.PROJECT_NUMBER }}
           recency: ${{ inputs.recency || '2' }}
@@ -56,7 +58,7 @@ jobs:
       # The `project-populate` action does not expose `--status`, so use the same image the actions
       # pin directly to keep the custom `Incoming` status for the CON project.
       - name: Push to CON project
-        uses: docker://ghcr.io/codycbakerphd/historia:0.13.0
+        uses: docker://ghcr.io/codycbakerphd/historia:0.15.0
         env:
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
         with:
